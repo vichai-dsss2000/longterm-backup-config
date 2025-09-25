@@ -1,5 +1,3 @@
-# longterm-backup-config v.1.0.0
-
 # AI Coding Agent Instructions
 
 ## Project Overview
