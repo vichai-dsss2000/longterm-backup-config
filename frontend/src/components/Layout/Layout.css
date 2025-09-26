@@ -1,0 +1,102 @@
+.device-tree {
+  font-size: 14px;
+}
+
+.tree-item {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.tree-item:hover {
+  background-color: #e3f2fd !important;
+}
+
+.location-item {
+  padding: 10px 15px;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  font-weight: 500;
+}
+
+.device-type-item {
+  padding: 8px 15px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #ffffff;
+  font-weight: 400;
+}
+
+.device-item {
+  padding: 6px 15px;
+  border-bottom: 1px solid #f1f3f4;
+  background-color: #fdfdfd;
+  font-size: 13px;
+}
+
+.device-types {
+  padding-left: 20px;
+}
+
+.devices {
+  padding-left: 20px;
+}
+
+.device-name {
+  font-weight: 500;
+}
+
+.badge {
+  font-size: 10px;
+}
+
+.location-node .badge {
+  font-size: 10px;
+}
+
+/* Additional styling for better visual hierarchy */
+.device-tree .location-node {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.device-tree .location-node:last-child {
+  border-bottom: none;
+}
+
+/* Smooth expand/collapse animations */
+.device-types,
+.devices {
+  animation: slideDown 0.2s ease-in-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+/* Custom scrollbar for the sidebar */
+.offcanvas-body {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+}
+
+.offcanvas-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.offcanvas-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.offcanvas-body::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.offcanvas-body::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
