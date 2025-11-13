@@ -5,6 +5,9 @@
 .tree-item {
   cursor: pointer;
   transition: background-color 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 15px;
 }
 
 .tree-item:hover {
@@ -12,44 +15,84 @@
 }
 
 .location-item {
-  padding: 10px 15px;
   border-bottom: 1px solid #dee2e6;
   background-color: #f8f9fa;
   font-weight: 500;
+  padding: 12px 15px;
 }
 
 .device-type-item {
-  padding: 8px 15px;
   border-bottom: 1px solid #e9ecef;
   background-color: #ffffff;
   font-weight: 400;
+  padding: 10px 15px;
 }
 
 .device-item {
-  padding: 6px 15px;
   border-bottom: 1px solid #f1f3f4;
   background-color: #fdfdfd;
   font-size: 13px;
+  padding: 8px 15px;
+  align-items: flex-start;
 }
 
 .device-types {
   padding-left: 20px;
+  animation: slideDown 0.3s ease-in-out;
 }
 
 .devices {
   padding-left: 20px;
+  animation: slideDown 0.3s ease-in-out;
+}
+
+.device-info {
+  flex: 1;
+  min-width: 0; /* Allow text to wrap */
 }
 
 .device-name {
   font-weight: 500;
+  display: block;
+  word-wrap: break-word;
+}
+
+.hostname-info {
+  color: #6c757d !important;
+  font-style: italic;
 }
 
 .badge {
   font-size: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .location-node .badge {
   font-size: 10px;
+}
+
+.chevron-icon {
+  color: #6c757d;
+  flex-shrink: 0;
+  width: 12px;
+  text-align: center;
+}
+
+.tree-controls {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.tree-controls .btn {
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tree-controls small {
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 /* Additional styling for better visual hierarchy */
@@ -62,19 +105,16 @@
 }
 
 /* Smooth expand/collapse animations */
-.device-types,
-.devices {
-  animation: slideDown 0.2s ease-in-out;
-}
-
 @keyframes slideDown {
   from {
     opacity: 0;
     max-height: 0;
+    overflow: hidden;
   }
   to {
     opacity: 1;
-    max-height: 500px;
+    max-height: 1000px;
+    overflow: visible;
   }
 }
 
@@ -99,4 +139,49 @@
 
 .offcanvas-body::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .offcanvas {
+    width: 90vw !important;
+  }
+  
+  .device-types,
+  .devices {
+    padding-left: 15px;
+  }
+  
+  .tree-item {
+    padding: 6px 10px;
+  }
+  
+  .device-name {
+    font-size: 12px;
+  }
+}
+
+/* Enhanced hover effects */
+.location-item:hover {
+  background-color: #e9ecef !important;
+}
+
+.device-type-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.device-item:hover {
+  background-color: #e3f2fd !important;
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+/* Loading and error states */
+.fa-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

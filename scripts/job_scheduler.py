@@ -88,14 +88,13 @@ class NotificationConfig:
     include_logs: bool = True
     max_log_entries: int = 50
 
-
 class DatabaseJobStore:
     """Custom job store integration with application database."""
-    
+
     def __init__(self, database_url: str):
         self.database_url = database_url
         self.sqlalchemy_store = SQLAlchemyJobStore(url=database_url, tablename='scheduler_jobs')
-    
+
     def get_store(self):
         """Get the SQLAlchemy job store."""
         return self.sqlalchemy_store

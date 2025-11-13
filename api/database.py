@@ -4,12 +4,39 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import enum
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from config import settings
 
-# Database engine
-engine = create_engine(settings.database_url)
+# Database connection configuration
+# Use SQLite for development
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "sqlite:///./longterm_backup_config.db"
+)
+
+# Create SQLAlchemy engine
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=False  # Set to True for SQL query logging
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        echo=False  # Set to True for SQL query logging
+    )
+
+# Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create Base class
 Base = declarative_base()
 
 # Enums

@@ -166,8 +166,8 @@ class BackupCommandTemplateResponse(BaseModel):
 	retry_count: int
 	retry_interval_seconds: int
 	is_active: bool
-	version: str
-	created_at: datetime
+	version: Optional[str]
+	created_at: Optional[datetime]
 	device_type: DeviceTypeResponse
 	
 	class Config:
@@ -191,7 +191,7 @@ class JobCategoryResponse(BaseModel):
 	description: Optional[str]
 	color_code: Optional[str]
 	is_active: bool
-	created_at: datetime
+	created_at: Optional[datetime]
 	
 	class Config:
 		from_attributes = True

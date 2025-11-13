@@ -15,6 +15,7 @@ from sqlalchemy import and_
 from database import get_db, NetworkDevice, DeviceType, DeviceBackupInfo
 from schemas import (
     NetworkDeviceCreate, NetworkDeviceUpdate, NetworkDeviceResponse,
+    DeviceTypeResponse, DeviceTypeCreate, DeviceTypeUpdate,
     TestConnectionRequest, TestConnectionResponse, MessageResponse
 )
 from auth import get_current_user, get_admin_user
@@ -25,8 +26,8 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from scripts.ssh_connection import SSHConnectionManager, create_device_credentials
-from scripts.error_handling import error_manager
+from ssh_connection import SSHConnectionManager, create_device_credentials
+from error_handling import error_manager
 from cryptography.fernet import Fernet
 import base64
 import os
@@ -108,6 +109,160 @@ async def get_devices(
         )
         for device in devices
     ]
+
+
+@router.get("/types", response_model=List[DeviceTypeResponse])
+async def get_device_types(
+    skip: int = 0,
+    limit: int = 100,
+    active_only: bool = True,
+    vendor: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get list of device types."""
+    query = db.query(DeviceType)
+    
+    # Apply filters
+    if active_only:
+        query = query.filter(DeviceType.is_active == True)
+    
+    if vendor:
+        query = query.filter(DeviceType.vendor.ilike(f"%{vendor}%"))
+    
+    device_types = query.offset(skip).limit(limit).all()
+    
+    return [
+        DeviceTypeResponse(
+            **{key: getattr(dt, key) for key in DeviceTypeResponse.__annotations__.keys() if hasattr(dt, key)}
+        )
+        for dt in device_types
+    ]
+
+
+@router.post("/types", response_model=DeviceTypeResponse)
+async def create_device_type(
+    device_type_data: DeviceTypeCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_admin_user)
+):
+    """Create a new device type."""
+    # Check if device type with same vendor, model, firmware already exists
+    existing = db.query(DeviceType).filter(
+        and_(
+            DeviceType.vendor == device_type_data.vendor,
+            DeviceType.model == device_type_data.model,
+            DeviceType.firmware_version == device_type_data.firmware_version
+        )
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Device type with same vendor, model, and firmware version already exists"
+        )
+    
+    new_device_type = DeviceType(
+        vendor=device_type_data.vendor,
+        model=device_type_data.model,
+        firmware_version=device_type_data.firmware_version,
+        device_category=device_type_data.device_category,
+        netmiko_device_type=device_type_data.netmiko_device_type,
+        description=device_type_data.description
+    )
+    
+    db.add(new_device_type)
+    db.commit()
+    db.refresh(new_device_type)
+    
+    logger.info(f"Created new device type: {new_device_type.vendor} {new_device_type.model}")
+    
+    return DeviceTypeResponse(
+        **{key: getattr(new_device_type, key) for key in DeviceTypeResponse.__annotations__.keys() if hasattr(new_device_type, key)}
+    )
+
+
+@router.get("/types/{device_type_id}", response_model=DeviceTypeResponse)
+async def get_device_type(
+    device_type_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get specific device type by ID."""
+    device_type = db.query(DeviceType).filter(DeviceType.id == device_type_id).first()
+    
+    if not device_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device type not found"
+        )
+    
+    return DeviceTypeResponse(
+        **{key: getattr(device_type, key) for key in DeviceTypeResponse.__annotations__.keys() if hasattr(device_type, key)}
+    )
+
+
+@router.put("/types/{device_type_id}", response_model=DeviceTypeResponse)
+async def update_device_type(
+    device_type_id: int,
+    device_type_data: DeviceTypeUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_admin_user)
+):
+    """Update a device type."""
+    device_type = db.query(DeviceType).filter(DeviceType.id == device_type_id).first()
+    
+    if not device_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device type not found"
+        )
+    
+    # Update fields
+    update_data = device_type_data.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(device_type, key, value)
+    
+    db.commit()
+    db.refresh(device_type)
+    
+    logger.info(f"Updated device type: {device_type.vendor} {device_type.model}")
+    
+    return DeviceTypeResponse(
+        **{key: getattr(device_type, key) for key in DeviceTypeResponse.__annotations__.keys() if hasattr(device_type, key)}
+    )
+
+
+@router.delete("/types/{device_type_id}")
+async def delete_device_type(
+    device_type_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_admin_user)
+):
+    """Delete a device type (soft delete by setting is_active to False)."""
+    device_type = db.query(DeviceType).filter(DeviceType.id == device_type_id).first()
+    
+    if not device_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device type not found"
+        )
+    
+    # Check if any devices are using this device type
+    devices_count = db.query(NetworkDevice).filter(NetworkDevice.device_type_id == device_type_id).count()
+    if devices_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete device type. {devices_count} devices are using this type."
+        )
+    
+    # Soft delete
+    device_type.is_active = False
+    db.commit()
+    
+    logger.info(f"Deleted device type: {device_type.vendor} {device_type.model}")
+    
+    return MessageResponse(message="Device type deleted successfully")
 
 
 @router.post("/", response_model=NetworkDeviceResponse)
@@ -489,3 +644,5 @@ async def bulk_test_connections(
     return MessageResponse(
         message=f"Bulk connection test started for {len(device_ids)} devices. Check logs for results."
     )
+
+

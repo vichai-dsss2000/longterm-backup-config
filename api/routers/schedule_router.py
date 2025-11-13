@@ -28,8 +28,8 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from scripts.job_scheduler import BackupScheduler
-from scripts.error_handling import error_manager
+from job_scheduler import BackupScheduler
+from error_handling import error_manager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

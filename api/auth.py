@@ -10,18 +10,31 @@ from database import get_db, User, LoginSession
 from config import settings
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt"], 
+    deprecated="auto",
+    bcrypt__rounds=12,
+    bcrypt__ident="2b"
+)
 
 # JWT token security
 security = HTTPBearer()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        # Truncate password to 72 bytes for bcrypt compatibility
+        password_bytes = plain_password.encode('utf-8')[:72]
+        return pwd_context.verify(password_bytes, hashed_password)
+    except Exception as e:
+        print(f"Password verification error: {e}")
+        return False
 
 def get_password_hash(password: str) -> str:
     """Generate password hash."""
-    return pwd_context.hash(password)
+    # Truncate password to 72 bytes for bcrypt compatibility
+    password_bytes = password.encode('utf-8')[:72]
+    return pwd_context.hash(password_bytes)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create JWT access token."""

@@ -7,6 +7,7 @@ import './App.css';
 import Layout from './components/Layout/Layout';
 import Dashboard from './components/Dashboard/Dashboard';
 import DeviceManagement from './components/DeviceManagement/DeviceManagement';
+import DeviceDetail from './components/DeviceManagement/DeviceDetail';
 import BackupJobs from './components/BackupJobs/BackupJobs';
 import Templates from './components/Templates/Templates';
 import Schedules from './components/Schedules/Schedules';
@@ -29,6 +30,7 @@ const App: React.FC = () => {
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/devices" element={<DeviceManagement />} />
+                      <Route path="/devices/:id" element={<DeviceDetail />} />
                       <Route path="/backups" element={<BackupJobs />} />
                       <Route path="/templates" element={<Templates />} />
                       <Route path="/schedules" element={<Schedules />} />

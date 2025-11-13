@@ -10,7 +10,7 @@ import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 
 from database import get_db, BackupCommandTemplate, DeviceType
 from schemas import (
@@ -24,8 +24,8 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from scripts.template_processor import BackupCommandTemplateManager
-from scripts.test_validation import TemplateValidator
+from template_processor import BackupCommandTemplateManager
+from test_validation import TemplateValidator
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -60,9 +60,11 @@ async def get_templates(
     if search:
         search_term = f"%{search}%"
         query = query.filter(
-            BackupCommandTemplate.template_name.ilike(search_term) |
-            BackupCommandTemplate.template_description.ilike(search_term) |
-            BackupCommandTemplate.backup_command.ilike(search_term)
+            or_(
+                BackupCommandTemplate.template_name.ilike(search_term),
+                BackupCommandTemplate.template_description.ilike(search_term),
+                BackupCommandTemplate.backup_command.ilike(search_term)
+            )
         )
     
     templates = query.offset(skip).limit(limit).all()

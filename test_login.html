@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Login API</h1>
+        <p>Test the backend login endpoint with CORS</p>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="apiUrl">API URL:</label>
+                <input type="text" id="apiUrl" value="http://localhost:8000/api/auth/login" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" value="admin" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="admin123" required>
+            </div>
+            
+            <button type="submit">Login</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const apiUrl = document.getElementById('apiUrl').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '<p>Loading...</p>';
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <h3>✅ Login Successful!</h3>
+                            <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                            <p><strong>Token Type:</strong> ${data.token_type}</p>
+                            <p><strong>Username:</strong> ${data.user.username}</p>
+                            <p><strong>Email:</strong> ${data.user.email}</p>
+                            <p><strong>Is Admin:</strong> ${data.user.is_admin}</p>
+                            <p><strong>Expires At:</strong> ${data.expires_at}</p>
+                            <details>
+                                <summary>Access Token (click to show)</summary>
+                                <pre>${data.access_token}</pre>
+                            </details>
+                            <details>
+                                <summary>Full Response</summary>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                    
+                    // Store token in localStorage for testing
+                    localStorage.setItem('access_token', data.access_token);
+                    console.log('Token saved to localStorage');
+                    
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>❌ Login Failed</h3>
+                            <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Request Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>This might be a CORS issue or the backend is not running.</p>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `;
+                console.error('Login error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

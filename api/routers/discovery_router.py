@@ -22,10 +22,10 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from scripts.device_discovery import (
+from device_discovery import (
     DeviceDiscoveryManager, DiscoveredDevice, DiscoveryMethod
 )
-from scripts.error_handling import error_manager
+from error_handling import error_manager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

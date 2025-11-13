@@ -25,9 +25,9 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from scripts.backup_executor import DeviceBackupExecutor, BackupJobConfig, BackupStatus
-from scripts.file_storage import storage_manager
-from scripts.error_handling import error_manager
+from backup_executor import DeviceBackupExecutor, BackupJobConfig, BackupStatus
+from file_storage import storage_manager
+from error_handling import error_manager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -324,6 +324,115 @@ async def execute_backup_job(
         )
 
 
+@router.get("/stats")
+async def get_backup_stats(
+    days_back: int = 30,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get backup statistics summary."""
+    from datetime import timedelta
+    from sqlalchemy import func
+    
+    since_date = datetime.now(timezone.utc) - timedelta(days=days_back)
+    
+    # Get job counts by status
+    status_counts = db.query(
+        DeviceBackupInfo.job_status,
+        func.count(DeviceBackupInfo.id)
+    ).filter(
+        DeviceBackupInfo.created_at >= since_date
+    ).group_by(DeviceBackupInfo.job_status).all()
+    
+    # Get total backup size
+    total_size = db.query(
+        func.sum(DeviceBackupInfo.backup_file_size_mb)
+    ).filter(
+        and_(
+            DeviceBackupInfo.created_at >= since_date,
+            DeviceBackupInfo.job_status == JobStatus.completed
+        )
+    ).scalar() or 0
+    
+    # Calculate average duration using Python (SQLite compatible)
+    completed_jobs = db.query(DeviceBackupInfo).filter(
+        and_(
+            DeviceBackupInfo.created_at >= since_date,
+            DeviceBackupInfo.job_status == JobStatus.completed,
+            DeviceBackupInfo.backup_start_time.isnot(None),
+            DeviceBackupInfo.backup_end_time.isnot(None)
+        )
+    ).all()
+    
+    if completed_jobs:
+        durations = [
+            (job.backup_end_time - job.backup_start_time).total_seconds()
+            for job in completed_jobs
+        ]
+        avg_duration = sum(durations) / len(durations)
+    else:
+        avg_duration = 0
+    
+    # Format status counts
+    status_summary = {}
+    for status, count in status_counts:
+        status_summary[status.value if status else 'unknown'] = count
+    
+    return {
+        "period_days": days_back,
+        "total_jobs": sum(status_summary.values()),
+        "status_breakdown": status_summary,
+        "success_rate": (
+            (status_summary.get('completed', 0) / sum(status_summary.values()) * 100)
+            if sum(status_summary.values()) > 0 else 0
+        ),
+        "total_backup_size_mb": float(total_size),
+        "average_duration_seconds": float(avg_duration),
+        "generated_at": datetime.now(timezone.utc)
+    }
+
+
+@router.get("/recent")
+async def get_recent_backups(
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get list of recent backup jobs."""
+    # Query recent backups with relationships
+    recent_jobs = db.query(DeviceBackupInfo).options(
+        joinedload(DeviceBackupInfo.device),
+        joinedload(DeviceBackupInfo.schedule_policy).joinedload(JobSchedulePolicy.template)
+    ).order_by(desc(DeviceBackupInfo.created_at)).limit(limit).all()
+    
+    return [
+        {
+            "id": job.id,
+            "device": {
+                "id": job.device.id,
+                "device_name": job.device.device_name,
+                "ip_address": job.device.ip_address
+            } if job.device else None,
+            "template": {
+                "id": job.schedule_policy.template.id,
+                "template_name": job.schedule_policy.template.template_name
+            } if job.schedule_policy and job.schedule_policy.template else None,
+            "job_status": job.job_status.value if job.job_status else None,
+            "backup_start_time": job.backup_start_time,
+            "backup_end_time": job.backup_end_time,
+            "backup_file_path": job.backup_file_path,
+            "backup_file_size_mb": float(job.backup_file_size_mb) if job.backup_file_size_mb else None,
+            "error_message": job.error_message,
+            "created_at": job.created_at,
+            "duration_seconds": (
+                (job.backup_end_time - job.backup_start_time).total_seconds()
+                if job.backup_start_time and job.backup_end_time else None
+            )
+        }
+        for job in recent_jobs
+    ]
+
+
 @router.get("/{job_id}")
 async def get_backup_job(
     job_id: int,
@@ -471,70 +580,3 @@ async def cancel_backup_job(
     logger.info(f"Backup job {job_id} cancelled by user {current_user.username}")
     
     return MessageResponse(message="Backup job cancelled successfully")
-
-
-@router.get("/stats/summary")
-async def get_backup_stats(
-    days_back: int = 30,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """Get backup statistics summary."""
-    from datetime import timedelta
-    from sqlalchemy import func
-    
-    since_date = datetime.now(timezone.utc) - timedelta(days=days_back)
-    
-    # Get job counts by status
-    status_counts = db.query(
-        DeviceBackupInfo.job_status,
-        func.count(DeviceBackupInfo.id)
-    ).filter(
-        DeviceBackupInfo.created_at >= since_date
-    ).group_by(DeviceBackupInfo.job_status).all()
-    
-    # Get total backup size
-    total_size = db.query(
-        func.sum(DeviceBackupInfo.backup_file_size_mb)
-    ).filter(
-        and_(
-            DeviceBackupInfo.created_at >= since_date,
-            DeviceBackupInfo.job_status == JobStatus.completed
-        )
-    ).scalar() or 0
-    
-    # Get average backup duration
-    avg_duration = db.query(
-        func.avg(
-            func.timestampdiff(
-                'SECOND',
-                DeviceBackupInfo.backup_start_time,
-                DeviceBackupInfo.backup_end_time
-            )
-        )
-    ).filter(
-        and_(
-            DeviceBackupInfo.created_at >= since_date,
-            DeviceBackupInfo.job_status == JobStatus.completed,
-            DeviceBackupInfo.backup_start_time.isnot(None),
-            DeviceBackupInfo.backup_end_time.isnot(None)
-        )
-    ).scalar() or 0
-    
-    # Format status counts
-    status_summary = {}
-    for status, count in status_counts:
-        status_summary[status.value if status else 'unknown'] = count
-    
-    return {
-        "period_days": days_back,
-        "total_jobs": sum(status_summary.values()),
-        "status_breakdown": status_summary,
-        "success_rate": (
-            (status_summary.get('completed', 0) / sum(status_summary.values()) * 100)
-            if sum(status_summary.values()) > 0 else 0
-        ),
-        "total_backup_size_mb": float(total_size),
-        "average_duration_seconds": float(avg_duration),
-        "generated_at": datetime.now(timezone.utc)
-    }

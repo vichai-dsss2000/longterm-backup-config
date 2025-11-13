@@ -25,8 +25,10 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.openapi.utils import get_openapi
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -183,22 +185,67 @@ async def lifespan(app: FastAPI):
 # Create FastAPI application
 app = FastAPI(
 	title="Network Device Backup Management System",
-	description="Comprehensive network device backup system with web-based administration, "
-				"automated scheduling, and multi-vendor device support.",
+	description="""
+	## Comprehensive REST API for Network Device Backup Automation
+	
+	This API provides complete functionality for managing network device backups including:
+	
+	* **Authentication**: JWT-based user authentication and authorization
+	* **Device Management**: CRUD operations for network devices and device types
+	* **Backup Templates**: Manage backup command templates for different vendors
+	* **Scheduler**: Configure and manage backup job schedules with cron expressions
+	* **Backup Execution**: Execute and monitor backup jobs
+	* **Discovery**: Network device discovery and inventory management
+	* **Monitoring**: System health checks and performance monitoring
+	
+	### Authentication
+	Most endpoints require JWT authentication. Use the `/api/auth/login` endpoint to obtain a token.
+	
+	### Base URL
+	All API endpoints are prefixed with `/api/`
+	""",
 	version="1.0.0",
-	docs_url="/api/docs",
-	redoc_url="/api/redoc",
+	docs_url=None,  # Disable default to create custom routes
+	redoc_url=None,  # Disable default to create custom routes
 	openapi_url="/api/openapi.json",
-	lifespan=lifespan
+	lifespan=lifespan,
+	contact={
+		"name": "Network Backup System Support",
+		"email": "admin@example.com",
+	},
+	license_info={
+		"name": "MIT License",
+		"url": "https://opensource.org/licenses/MIT",
+	},
+	servers=[
+		{
+			"url": "http://localhost:8000",
+			"description": "Development server"
+		},
+		{
+			"url": "https://api.example.com",
+			"description": "Production server"
+		}
+	]
 )
 
-# Add middleware
+# Add middleware - CORS must be configured before other middleware
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=settings.cors_origins.split(","),
+	allow_origins=[
+		"http://localhost:3000",
+		"http://localhost:8000",
+		"http://localhost:8080",
+		"http://127.0.0.1:3000",
+		"http://127.0.0.1:8000",
+		"http://127.0.0.1:8080",
+		"*"  # Allow all origins in development
+	],
 	allow_credentials=True,
-	allow_methods=["*"],
+	allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
 	allow_headers=["*"],
+	expose_headers=["*"],
+	max_age=3600,
 )
 
 app.add_middleware(
@@ -255,9 +302,62 @@ async def root():
 		"version": "1.0.0",
 		"status": "running",
 		"timestamp": datetime.now(timezone.utc).isoformat(),
-		"docs": "/api/docs",
-		"health": "/api/health"
+		"documentation": {
+			"swagger_ui": "/api/docs",
+			"redoc": "/api/redoc",
+			"openapi_json": "/api/openapi.json"
+		},
+		"endpoints": {
+			"health": "/api/health",
+			"authentication": "/api/auth",
+			"devices": "/api/devices",
+			"templates": "/api/templates",
+			"schedules": "/api/schedules",
+			"backups": "/api/backups",
+			"monitoring": "/api/monitoring",
+			"discovery": "/api/discovery"
+		}
 	}
+
+
+# Custom Swagger UI route
+@app.get("/api/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+	"""Custom Swagger UI documentation page."""
+	return get_swagger_ui_html(
+		openapi_url="/api/openapi.json",
+		title=app.title + " - Swagger UI",
+		oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+		swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+		swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
+		swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+	)
+
+
+# Custom ReDoc route
+@app.get("/api/redoc", include_in_schema=False)
+async def custom_redoc_html():
+	"""Custom ReDoc documentation page."""
+	return get_redoc_html(
+		openapi_url="/api/openapi.json",
+		title=app.title + " - ReDoc",
+		redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
+		redoc_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+	)
+
+
+# Redirect /docs to /api/docs
+@app.get("/docs", include_in_schema=False)
+async def redirect_docs():
+	"""Redirect /docs to /api/docs."""
+	return RedirectResponse(url="/api/docs")
+
+
+# Redirect /redoc to /api/redoc
+@app.get("/redoc", include_in_schema=False)
+async def redirect_redoc():
+	"""Redirect /redoc to /api/redoc."""
+	return RedirectResponse(url="/api/redoc")
 
 
 # Health check endpoint
@@ -351,6 +451,79 @@ async def system_status():
 			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
 			detail="Failed to retrieve system status"
 		)
+
+
+# Custom OpenAPI schema with additional information
+def custom_openapi():
+	"""Generate custom OpenAPI schema with enhanced documentation."""
+	if app.openapi_schema:
+		return app.openapi_schema
+	
+	openapi_schema = get_openapi(
+		title=app.title,
+		version=app.version,
+		description=app.description,
+		routes=app.routes,
+		servers=app.servers,
+		contact=app.contact,
+		license_info=app.license_info,
+	)
+	
+	# Add security schemes
+	openapi_schema["components"]["securitySchemes"] = {
+		"Bearer": {
+			"type": "http",
+			"scheme": "bearer",
+			"bearerFormat": "JWT",
+			"description": "Enter your JWT token in the format: Bearer <token>"
+		}
+	}
+	
+	# Add tags metadata with descriptions
+	openapi_schema["tags"] = [
+		{
+			"name": "Root",
+			"description": "Root endpoints and system information"
+		},
+		{
+			"name": "Health",
+			"description": "Health check and system status endpoints"
+		},
+		{
+			"name": "Authentication",
+			"description": "User authentication, login, logout, and JWT token management"
+		},
+		{
+			"name": "Devices",
+			"description": "Network device management - CRUD operations for devices and device types"
+		},
+		{
+			"name": "Templates",
+			"description": "Backup command template management for different device vendors and models"
+		},
+		{
+			"name": "Schedules",
+			"description": "Backup job scheduling with cron expressions and policy management"
+		},
+		{
+			"name": "Backups",
+			"description": "Backup execution, history, and file management"
+		},
+		{
+			"name": "Monitoring",
+			"description": "System monitoring, performance metrics, and health checks"
+		},
+		{
+			"name": "Discovery",
+			"description": "Network device discovery and automated inventory management"
+		}
+	]
+	
+	app.openapi_schema = openapi_schema
+	return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 # Import and include routers (will be created in subsequent files)

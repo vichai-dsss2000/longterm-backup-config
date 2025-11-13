@@ -1,3 +1,4 @@
+# pylint: disable=bad-indentation
 """
 Template Processing Engine for Network Device Backup System
 ==========================================================
@@ -242,7 +243,7 @@ class TemplateProcessor:
 			if var_name not in all_variables:
 				errors.append(f"Required variable '{var_name}' not found in context")
 		
-		return len(errors) == 0, errors
+		return not errors, errors
 	
 	def _process_simple_substitution(self, template_content: str, 
 								   context: TemplateContext) -> ProcessedTemplate:
@@ -418,28 +419,29 @@ class TemplateProcessor:
 	def validate_template_syntax(self, template_content: str) -> Tuple[bool, List[str]]:
 		"""Validate template syntax without processing."""
 		errors = []
-		
+
 		try:
 			# Check for balanced braces
 			if template_content.count('{') != template_content.count('}'):
 				errors.append("Unbalanced braces in template")
-			
+
 			# If Jinja2 is enabled, validate Jinja2 syntax
 			if self.enable_jinja2 and ('{{' in template_content or '{%' in template_content):
 				try:
 					self.jinja_env.from_string(template_content)
 				except TemplateError as e:
 					errors.append(f"Jinja2 syntax error: {str(e)}")
-			
+
 			# Validate variable names
 			variables = self._extract_template_variables(template_content)
-			for var in variables:
-				if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', var):
-					errors.append(f"Invalid variable name: '{var}'")
-		
-		except Exception as e:
+			errors.extend(
+				f"Invalid variable name: '{var}'"
+				for var in variables
+				if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', var)
+			)
+		except (ValueError, TypeError) as e:
 			errors.append(f"Template validation error: {str(e)}")
-		
+
 		return len(errors) == 0, errors
 
 
@@ -459,8 +461,8 @@ class BackupCommandTemplateManager:
 		if template_data.get('template_variables'):
 			try:
 				var_definitions = json.loads(template_data['template_variables'])
-				for var_name, var_config in var_definitions.items():
-					variables.append(TemplateVariable(
+				variables.extend([
+					TemplateVariable(
 						name=var_name,
 						description=var_config.get('description', ''),
 						default_value=var_config.get('default'),
@@ -468,7 +470,9 @@ class BackupCommandTemplateManager:
 						variable_type=var_config.get('type', 'string'),
 						validation_pattern=var_config.get('pattern'),
 						allowed_values=var_config.get('allowed_values')
-					))
+					)
+					for var_name, var_config in var_definitions.items()
+				])
 			except (json.JSONDecodeError, KeyError) as e:
 				logger.warning(f"Error parsing template variables: {e}")
 		

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Navbar, Nav, NavDropdown, Offcanvas, Button, Alert } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import apiClient from '../../services/apiClient';
 import { 
   FaHome, 
   FaServer, 
@@ -17,20 +18,38 @@ import {
   FaNetworkWired,
   FaDesktop,
   FaExclamationTriangle,
-  FaSpinner
+  FaSpinner,
+  FaExpandArrowsAlt,
+  FaCompressArrowsAlt
 } from 'react-icons/fa';
 import './Layout.css';
 
 // Updated interface to match database schema
+interface DeviceType {
+  id: number;
+  vendor: string;
+  model: string;
+  firmware_version?: string;
+  device_category?: string;
+  netmiko_device_type?: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 interface Device {
-  device_id: string;
+  id?: number;
+  device_id?: string;
   device_name: string;
-  device_type_id: string;
-  device_type?: string; // From joined device_types table
+  device_type_id: string | number;
+  device_type?: DeviceType | string; // Can be object (from API) or string (legacy)
   location?: string;
   ip_address: string;
   hostname?: string;
   is_active: boolean;
+  last_backup_date?: string;
+  last_backup_status?: string;
+  created_at?: string;
 }
 
 interface DeviceTreeNode {
@@ -54,6 +73,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [expandedLocations, setExpandedLocations] = useState<Set<string>>(new Set());
   const [expandedDeviceTypes, setExpandedDeviceTypes] = useState<Set<string>>(new Set());
+  const [allExpanded, setAllExpanded] = useState(true); // Default to expanded
 
   const handleLogout = () => {
     logout();
@@ -72,6 +92,39 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return location.pathname === path;
   };
 
+  // Expand all tree nodes
+  const expandAll = () => {
+    const allLocations = new Set<string>();
+    const allDeviceTypeKeys = new Set<string>();
+    
+    Object.values(deviceTree).forEach((locationNode) => {
+      allLocations.add(locationNode.location);
+      Object.keys(locationNode.deviceTypes).forEach((deviceType) => {
+        allDeviceTypeKeys.add(`${locationNode.location}-${deviceType}`);
+      });
+    });
+    
+    setExpandedLocations(allLocations);
+    setExpandedDeviceTypes(allDeviceTypeKeys);
+    setAllExpanded(true);
+  };
+
+  // Collapse all tree nodes
+  const collapseAll = () => {
+    setExpandedLocations(new Set());
+    setExpandedDeviceTypes(new Set());
+    setAllExpanded(false);
+  };
+
+  // Toggle expand/collapse all
+  const toggleExpandAll = () => {
+    if (allExpanded) {
+      collapseAll();
+    } else {
+      expandAll();
+    }
+  };
+
   // Fetch devices from API with proper error handling
   useEffect(() => {
     const fetchDevices = async () => {
@@ -81,89 +134,139 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       setError(null);
       
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-
-        // Try multiple possible API endpoints
-        const endpoints = [
-          '/api/devices',
-          '/api/network-devices', 
-          '/api/inventory/devices'
-        ];
-
-        let response;
-        let lastError;
-
-        for (const endpoint of endpoints) {
-          try {
-            response = await fetch(endpoint, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            if (response.ok) {
-              break; // Success, exit loop
-            } else if (response.status === 404) {
-              lastError = `Endpoint ${endpoint} not found`;
-              continue; // Try next endpoint
-            } else {
-              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-          } catch (err) {
-            lastError = err instanceof Error ? err.message : 'Unknown error';
-            continue;
-          }
-        }
-
-        if (!response || !response.ok) {
-          throw new Error(lastError || 'All API endpoints failed');
-        }
+        // Use apiClient which already has baseURL and token configured
+        const response = await apiClient.get('/devices/');
         
-        const data = await response.json();
-        console.log('Fetched devices:', data); // Debug log
+        console.log('Fetched devices:', response.data); // Debug log
         
         // Handle different response formats
-        const deviceList = Array.isArray(data) ? data : (data.devices || data.data || []);
+        const deviceList = Array.isArray(response.data) ? response.data : (response.data.devices || response.data.data || []);
         setDevices(deviceList);
         
       } catch (error) {
         console.error('Error fetching devices:', error);
         setError(error instanceof Error ? error.message : 'Failed to fetch devices');
         
-        // Add some mock data for development/testing
+        // Add comprehensive mock data for development/testing
         setDevices([
           {
-            device_id: '1',
+            id: 1,
             device_name: 'Core-Switch-01',
-            device_type_id: '1',
-            device_type: 'Cisco Switch',
-            location: 'Data Center',
+            device_type_id: 1,
+            device_type: 'Cisco Catalyst Switch',
+            location: 'Data Center - Rack A1',
             ip_address: '192.168.1.10',
-            hostname: 'core-sw-01',
+            hostname: 'core-sw-01.company.com',
             is_active: true
           },
           {
-            device_id: '2', 
+            id: 2, 
+            device_name: 'Core-Switch-02',
+            device_type_id: 1,
+            device_type: 'Cisco Catalyst Switch',
+            location: 'Data Center - Rack A1',
+            ip_address: '192.168.1.11',
+            hostname: 'core-sw-02.company.com',
+            is_active: true
+          },
+          {
+            id: 3,
             device_name: 'Router-WAN-01',
-            device_type_id: '2',
-            device_type: 'Cisco Router',
-            location: 'Data Center',
+            device_type_id: 2,
+            device_type: 'Cisco ISR Router',
+            location: 'Data Center - Rack A1',
             ip_address: '192.168.1.1',
-            hostname: 'wan-rtr-01',
+            hostname: 'wan-rtr-01.company.com',
             is_active: true
           },
           {
-            device_id: '3',
-            device_name: 'Access-Switch-Floor2',
-            device_type_id: '1', 
-            device_type: 'Cisco Switch',
-            location: 'Office Floor 2',
+            id: 4,
+            device_name: 'Firewall-ASA-01',
+            device_type_id: 3,
+            device_type: 'Cisco ASA Firewall',
+            location: 'Data Center - Rack A1',
+            ip_address: '192.168.1.2',
+            hostname: 'fw-asa-01.company.com',
+            is_active: true
+          },
+          {
+            id: 5,
+            device_name: 'Access-Switch-Floor2-01',
+            device_type_id: 1, 
+            device_type: 'Cisco Catalyst Switch',
+            location: 'Office Floor 2 - IDF Room',
             ip_address: '192.168.2.10',
-            hostname: 'acc-sw-f2',
+            hostname: 'acc-sw-f2-01.company.com',
+            is_active: true
+          },
+          {
+            id: 6,
+            device_name: 'Access-Switch-Floor2-02',
+            device_type_id: 1,
+            device_type: 'Cisco Catalyst Switch',
+            location: 'Office Floor 2 - IDF Room',
+            ip_address: '192.168.2.11',
+            hostname: 'acc-sw-f2-02.company.com',
+            is_active: true
+          },
+          {
+            id: 7,
+            device_name: 'Wireless-Controller-01',
+            device_type_id: 4,
+            device_type: 'Cisco Wireless Controller',
+            location: 'Office Floor 2 - IDF Room',
+            ip_address: '192.168.2.20',
+            hostname: 'wlc-01.company.com',
+            is_active: true
+          },
+          {
+            id: 8,
+            device_name: 'Access-Switch-Floor3-01',
+            device_type_id: 1,
+            device_type: 'Cisco Catalyst Switch',
+            location: 'Office Floor 3 - Network Closet',
+            ip_address: '192.168.3.10',
+            hostname: 'acc-sw-f3-01.company.com',
+            is_active: true
+          },
+          {
+            id: 9,
+            device_name: 'Juniper-EX-01',
+            device_type_id: 5,
+            device_type: 'Juniper EX Switch',
+            location: 'Office Floor 3 - Network Closet',
+            ip_address: '192.168.3.20',
+            hostname: 'jun-ex-01.company.com',
+            is_active: true
+          },
+          {
+            id: 10,
+            device_name: 'MikroTik-Router-01',
+            device_type_id: 6,
+            device_type: 'MikroTik RouterOS',
+            location: 'Branch Office - Toronto',
+            ip_address: '10.10.1.1',
+            hostname: 'mikrotik-tor-01.company.com',
+            is_active: true
+          },
+          {
+            id: 11,
+            device_name: 'FortiGate-FW-01',
+            device_type_id: 7,
+            device_type: 'Fortinet FortiGate',
+            location: 'Branch Office - Toronto',
+            ip_address: '10.10.1.2',
+            hostname: 'fg-tor-01.company.com',
+            is_active: true
+          },
+          {
+            id: 12,
+            device_name: 'HP-Switch-01',
+            device_type_id: 8,
+            device_type: 'HP ProCurve Switch',
+            location: 'Branch Office - Vancouver',
+            ip_address: '10.20.1.10',
+            hostname: 'hp-van-01.company.com',
             is_active: true
           }
         ]);
@@ -175,12 +278,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     fetchDevices();
   }, [showSidebar]); // Fetch when sidebar opens
 
+  // Auto-expand all when devices are loaded
+  useEffect(() => {
+    if (devices.length > 0 && allExpanded) {
+      // Small delay to ensure tree is rendered
+      setTimeout(() => {
+        expandAll();
+      }, 100);
+    }
+  }, [devices, allExpanded]);
+
   // Organize devices into tree structure - only show active devices
   const deviceTree = devices
     .filter(device => device.is_active)
     .reduce((acc: { [location: string]: DeviceTreeNode }, device) => {
       const location = device.location || 'Unknown Location';
-      const deviceType = device.device_type || `Type ID: ${device.device_type_id}`;
+      
+      // Format device type string from object
+      let deviceTypeStr = '';
+      if (device.device_type && typeof device.device_type === 'object') {
+        const dt = device.device_type;
+        deviceTypeStr = `${dt.vendor} ${dt.model}`;
+        if (dt.firmware_version) {
+          deviceTypeStr += ` (${dt.firmware_version})`;
+        }
+      } else {
+        deviceTypeStr = device.device_type || `Type ID: ${device.device_type_id}`;
+      }
 
       if (!acc[location]) {
         acc[location] = {
@@ -189,11 +313,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         };
       }
 
-      if (!acc[location].deviceTypes[deviceType]) {
-        acc[location].deviceTypes[deviceType] = [];
+      if (!acc[location].deviceTypes[deviceTypeStr]) {
+        acc[location].deviceTypes[deviceTypeStr] = [];
       }
 
-      acc[location].deviceTypes[deviceType].push(device);
+      acc[location].deviceTypes[deviceTypeStr].push(device);
       return acc;
     }, {});
 
@@ -201,10 +325,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const newExpanded = new Set(expandedLocations);
     if (newExpanded.has(location)) {
       newExpanded.delete(location);
+      // Also collapse all device types in this location
+      const deviceTypesToRemove = new Set<string>();
+      expandedDeviceTypes.forEach(key => {
+        if (key.startsWith(`${location}-`)) {
+          deviceTypesToRemove.add(key);
+        }
+      });
+      const newExpandedDeviceTypes = new Set(expandedDeviceTypes);
+      deviceTypesToRemove.forEach(key => newExpandedDeviceTypes.delete(key));
+      setExpandedDeviceTypes(newExpandedDeviceTypes);
     } else {
       newExpanded.add(location);
     }
     setExpandedLocations(newExpanded);
+    
+    // Update allExpanded state
+    setAllExpanded(false);
   };
 
   const toggleDeviceTypeExpand = (locationDeviceType: string) => {
@@ -215,12 +352,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       newExpanded.add(locationDeviceType);
     }
     setExpandedDeviceTypes(newExpanded);
+    
+    // Update allExpanded state
+    setAllExpanded(false);
   };
 
   const handleDeviceClick = (device: Device) => {
     // Navigate to device detail page
-    navigate(`/devices/${device.device_id}`);
-    setShowSidebar(false);
+    const deviceId = device.id || device.device_id;
+    if (deviceId) {
+      navigate(`/devices/${deviceId}`);
+      setShowSidebar(false);
+    } else {
+      console.error('Device ID not found:', device);
+    }
   };
 
   return (
@@ -316,7 +461,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         show={showSidebar} 
         onHide={() => setShowSidebar(false)} 
         placement="start"
-        style={{ width: '350px' }}
+        style={{ width: '400px' }}
       >
         <Offcanvas.Header closeButton>
           <Offcanvas.Title>
@@ -326,6 +471,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Offcanvas.Header>
         
         <Offcanvas.Body className="p-0">
+          {/* Expand/Collapse All Controls */}
+          {!loading && Object.keys(deviceTree).length > 0 && (
+            <div className="tree-controls p-3 border-bottom">
+              <Button 
+                variant="outline-secondary" 
+                size="sm" 
+                onClick={toggleExpandAll}
+                className="w-100"
+              >
+                {allExpanded ? (
+                  <>
+                    <FaCompressArrowsAlt className="me-2" />
+                    Collapse All
+                  </>
+                ) : (
+                  <>
+                    <FaExpandArrowsAlt className="me-2" />
+                    Expand All
+                  </>
+                )}
+              </Button>
+              <small className="text-muted d-block mt-2 text-center">
+                {Object.values(deviceTree).reduce((sum, node) => 
+                  sum + Object.values(node.deviceTypes).reduce((typeSum, devices) => 
+                    typeSum + devices.length, 0), 0)} devices in {Object.keys(deviceTree).length} locations
+              </small>
+            </div>
+          )}
+
           {/* Loading State */}
           {loading && (
             <div className="text-center p-4">
@@ -357,9 +531,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     onClick={() => toggleLocationExpand(locationNode.location)}
                   >
                     {expandedLocations.has(locationNode.location) ? (
-                      <FaChevronDown className="me-2" />
+                      <FaChevronDown className="me-2 chevron-icon" />
                     ) : (
-                      <FaChevronRight className="me-2" />
+                      <FaChevronRight className="me-2 chevron-icon" />
                     )}
                     <FaMapMarkerAlt className="me-2 text-primary" />
                     <strong>{locationNode.location}</strong>
@@ -374,15 +548,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       {Object.entries(locationNode.deviceTypes).map(([deviceType, deviceList]) => {
                         const deviceTypeKey = `${locationNode.location}-${deviceType}`;
                         return (
-                          <div key={deviceType}>
+                          <div key={deviceTypeKey}>
                             <div 
                               className="tree-item device-type-item"
                               onClick={() => toggleDeviceTypeExpand(deviceTypeKey)}
                             >
                               {expandedDeviceTypes.has(deviceTypeKey) ? (
-                                <FaChevronDown className="me-2" />
+                                <FaChevronDown className="me-2 chevron-icon" />
                               ) : (
-                                <FaChevronRight className="me-2" />
+                                <FaChevronRight className="me-2 chevron-icon" />
                               )}
                               <FaServer className="me-2 text-success" />
                               {deviceType}
@@ -396,16 +570,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                               <div className="devices">
                                 {deviceList.map((device) => (
                                   <div 
-                                    key={device.device_id}
+                                    key={device.id || device.device_name}
                                     className="tree-item device-item"
                                     onClick={() => handleDeviceClick(device)}
+                                    title={`${device.device_name} (${device.hostname || device.ip_address})`}
                                   >
                                     <FaDesktop className="me-2 text-muted" />
-                                    <span className="device-name">{device.device_name}</span>
-                                    <br />
-                                    <small className="text-muted ms-3">
-                                      {device.ip_address}
-                                    </small>
+                                    <div className="device-info">
+                                      <div className="device-name">{device.device_name}</div>
+                                      <small className="text-muted d-block">
+                                        {device.ip_address}
+                                      </small>
+                                      {device.hostname && (
+                                        <small className="text-muted d-block hostname-info">
+                                          {device.hostname}
+                                        </small>
+                                      )}
+                                    </div>
                                   </div>
                                 ))}
                               </div>

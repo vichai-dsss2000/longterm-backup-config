@@ -25,12 +25,12 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from scripts.test_validation import (
+from test_validation import (
     SystemHealthMonitor, test_runner, ConnectionTester, 
     TemplateValidator, BackupTester, StorageTester, PerformanceTester
 )
-from scripts.error_handling import error_manager
-from scripts.file_storage import storage_manager
+from error_handling import error_manager
+from file_storage import storage_manager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -576,8 +576,8 @@ async def get_recent_errors(
 async def run_performance_benchmark(
     device_id: int,
     template_id: int,
-    iterations: int = 3,
     background_tasks: BackgroundTasks,
+    iterations: int = 3,
     db: Session = Depends(get_db),
     current_user = Depends(get_admin_user)
 ):
