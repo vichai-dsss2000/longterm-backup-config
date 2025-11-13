@@ -31,6 +31,9 @@ from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from fastapi.openapi.utils import get_openapi
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from config import settings
 from database import engine, Base, get_db
@@ -64,6 +67,13 @@ logging.basicConfig(
 	]
 )
 logger = logging.getLogger(__name__)
+
+# Initialize rate limiter
+limiter = Limiter(
+	key_func=get_remote_address,
+	default_limits=[f"{settings.rate_limit_times}/{settings.rate_limit_seconds}seconds"],
+	enabled=settings.rate_limit_enabled
+)
 
 # Global instances for script modules
 ssh_manager = None
@@ -229,18 +239,20 @@ app = FastAPI(
 	]
 )
 
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Add middleware - CORS must be configured before other middleware
+# Configure CORS based on environment
+cors_origins = settings.cors_origins.split(",") if settings.cors_origins else []
+if settings.environment == "development":
+	# Allow all origins in development
+	cors_origins = ["*"]
+
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=[
-		"http://localhost:3000",
-		"http://localhost:8000",
-		"http://localhost:8080",
-		"http://127.0.0.1:3000",
-		"http://127.0.0.1:8000",
-		"http://127.0.0.1:8080",
-		"*"  # Allow all origins in development
-	],
+	allow_origins=cors_origins,
 	allow_credentials=True,
 	allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
 	allow_headers=["*"],
