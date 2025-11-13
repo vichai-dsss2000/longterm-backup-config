@@ -1,0 +1,122 @@
+# Docker build context exclusions
+# =============================================================================
+
+# Version control
+.git/
+.gitignore
+.github/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+ENV/
+env/
+
+# Node.js / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+longterm_backup_config.db
+longterm_backup_config.db.backup
+
+# Logs
+logs/
+*.log
+nohup.out
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test files
+test_*.py
+test_*.html
+test_*.sh
+auth_debug.html
+*_test.py
+
+# Backups
+backups/
+*.backup
+*.bak
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.cache
+
+# Documentation drafts
+SUMMARY_AI.md
+TODO.md
+NOTES.md
+
+# Scripts
+seed_example_data.py
+create_test_*.py
+fix_*.py
+reset_*.py
+
+# Coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Documentation builds
+docs/_build/
+
+# SSL certificates (if any)
+*.pem
+*.key
+*.crt
+
+# Docker
+docker-compose.override.yml
