@@ -12,9 +12,26 @@
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+      user's mobile device or desktop. We dynamically add the manifest link at
+      runtime so environments that redirect /manifest.json (for example some
+      GitHub.dev/Codespaces previews) don't trigger CORS/redirects during page
+      load. Set REACT_APP_DISABLE_MANIFEST=true to disable adding the manifest.
     -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <script>
+      (function () {
+        try {
+          var disable = "%REACT_APP_DISABLE_MANIFEST%";
+          if (disable !== "true") {
+            var link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = '%PUBLIC_URL%/manifest.json';
+            document.head.appendChild(link);
+          }
+        } catch (e) {
+          /* ignore errors */
+        }
+      })();
+    </script>
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.

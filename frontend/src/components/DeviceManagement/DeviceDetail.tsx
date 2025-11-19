@@ -14,7 +14,7 @@ import {
   Form,
   Tabs,
   Tab,
-  ProgressBar
+  
 } from 'react-bootstrap';
 import {
   ArrowLeft,
@@ -23,7 +23,7 @@ import {
   Activity,
   Server,
   MapPin,
-  Network,
+  
   Clock,
   CheckCircle,
   XCircle,
@@ -55,13 +55,8 @@ const DeviceDetail: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   // Load data
-  useEffect(() => {
-    if (id) {
-      loadDeviceData();
-    }
-  }, [id]);
 
-  const loadDeviceData = async () => {
+  const loadDeviceData = React.useCallback(async () => {
     setLoading(true);
     try {
       const [deviceData, typesData, backupsData] = await Promise.all([
@@ -80,7 +75,13 @@ const DeviceDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      loadDeviceData();
+    }
+  }, [loadDeviceData]);
 
   const handleEdit = () => {
     if (device) {

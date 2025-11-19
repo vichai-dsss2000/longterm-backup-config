@@ -12,13 +12,12 @@ import {
   Spinner,
   InputGroup,
   FormControl,
-  ProgressBar,
   Modal,
   OverlayTrigger,
   Tooltip
 } from 'react-bootstrap';
 import {
-  Play,
+  
   RefreshCw,
   Download,
   X,
@@ -28,7 +27,7 @@ import {
   AlertCircle,
   Filter,
   Search,
-  Calendar,
+  
   FileText,
   Zap
 } from 'lucide-react';
@@ -39,7 +38,7 @@ import Swal from 'sweetalert2';
 const BackupJobs: React.FC = () => {
   // State management
   const [jobs, setJobs] = useState<BackupJob[]>([]);
-  const [recentBackups, setRecentBackups] = useState<BackupHistory[]>([]);
+  
   const [devices, setDevices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +75,6 @@ const BackupJobs: React.FC = () => {
 
   // Auto-refresh
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Load data
   const loadData = useCallback(async () => {
@@ -88,15 +86,13 @@ const BackupJobs: React.FC = () => {
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
 
-      const [jobsData, recentData, statsData, devicesData] = await Promise.all([
+      const [jobsData, statsData, devicesData] = await Promise.all([
         BackupService.getBackups(params),
-        BackupService.getRecentBackups(20),
         BackupService.getBackupStats(),
         DeviceService.getDevices()
       ]);
 
       setJobs(jobsData);
-      setRecentBackups(recentData);
       setStats(statsData);
       setDevices(devicesData);
       setError(null);
@@ -114,16 +110,16 @@ const BackupJobs: React.FC = () => {
 
   // Auto-refresh effect
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
     if (autoRefresh) {
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         loadData();
       }, 10000); // Refresh every 10 seconds
-      setRefreshInterval(interval);
-      return () => clearInterval(interval);
-    } else if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
+      return () => {
+        if (interval) clearInterval(interval);
+      };
     }
+    return () => {};
   }, [autoRefresh, loadData]);
 
   // Handlers

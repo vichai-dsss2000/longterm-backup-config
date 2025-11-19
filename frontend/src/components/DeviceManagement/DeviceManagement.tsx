@@ -12,7 +12,7 @@ import {
   Row,
   Col
 } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaSync, FaServer, FaCheckCircle, FaSearch, FaPlay } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSync, FaServer, FaCheckCircle, FaSearch } from 'react-icons/fa';
 import { DeviceService, NetworkDevice, DeviceType, NetworkDeviceCreate } from '../../services/deviceService';
 import Swal from 'sweetalert2';
 
@@ -48,28 +48,6 @@ const DeviceManagement: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    filterDevices();
-  }, [devices, searchTerm, filterStatus]);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [devicesData, typesData] = await Promise.all([
-        DeviceService.getDevices(),
-        DeviceService.getDeviceTypes()
-      ]);
-      setDevices(devicesData);
-      setDeviceTypes(typesData);
-      setError('');
-    } catch (err: any) {
-      console.error('Failed to fetch data:', err);
-      setError(err.response?.data?.message || 'Failed to load devices');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterDevices = () => {
     let filtered = devices;
 
     // Filter by status
@@ -90,7 +68,27 @@ const DeviceManagement: React.FC = () => {
     }
 
     setFilteredDevices(filtered);
+  }, [devices, searchTerm, filterStatus]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [devicesData, typesData] = await Promise.all([
+        DeviceService.getDevices(),
+        DeviceService.getDeviceTypes()
+      ]);
+      setDevices(devicesData);
+      setDeviceTypes(typesData);
+      setError('');
+    } catch (err: any) {
+      console.error('Failed to fetch data:', err);
+      setError(err.response?.data?.message || 'Failed to load devices');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  
 
   const handleShowModal = (device?: NetworkDevice) => {
     if (device) {
