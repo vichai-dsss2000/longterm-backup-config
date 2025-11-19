@@ -23,8 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better layer caching
-COPY requirements.txt .
+# Copy requirements first for better layer caching (when build context is repo root)
+# Path is adjusted because docker-compose build context is the repository root
+COPY api/requirements.txt .
 
 # Create virtual environment and install dependencies
 RUN python -m venv /opt/venv && \
@@ -58,8 +59,12 @@ WORKDIR /app
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 
-# Copy application code
-COPY --chown=appuser:appuser . .
+# Copy application code from the `api` subdirectory into the container
+COPY --chown=appuser:appuser api .
+
+# Copy supporting scripts from repository root to /scripts so imports in
+# `api/main.py` that add `../scripts` resolve correctly at runtime.
+COPY --chown=appuser:appuser scripts /scripts
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/logs /app/backups /app/temp && \

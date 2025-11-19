@@ -21,6 +21,7 @@ import asyncio
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from pathlib import Path
+import os
 
 from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,12 +82,60 @@ async def lifespan(app: FastAPI):
 	
 	# Initialize database
 	try:
-		# Create tables if they don't exist
-		Base.metadata.create_all(bind=engine)
-		logger.info("Database tables initialized successfully")
+		# Create tables if they don't exist. If the DB was initialized from
+		# an SQL script (or migration) some tables may already exist; handle
+		# that gracefully so the app can start during iterative local development.
+		from sqlalchemy.exc import OperationalError
+		# Try a few times in case of transient DB errors (deadlocks) during
+		# schema creation. If tables already exist, continue startup.
+		import time
+		max_attempts = 3
+		for attempt in range(1, max_attempts + 1):
+			try:
+				Base.metadata.create_all(bind=engine)
+				logger.info("Database tables initialized successfully")
+				break
+			except OperationalError as oe:
+				msg = str(oe)
+				# Handle common transient deadlock error (MySQL errno 1213)
+				if 'deadlock' in msg.lower() or '1213' in msg:
+					logger.warning(f"Transient DB deadlock during create_all (attempt {attempt}): {msg}")
+					if attempt < max_attempts:
+						time.sleep(1)
+						continue
+				# MySQL returns error code 1050 when table already exists; log and continue
+				if 'table' in msg.lower() and 'already exists' in msg.lower():
+					logger.warning(f"Database tables partially exist: {msg} — continuing startup")
+					break
+				# Unknown OperationalError - re-raise
+				raise
 	except Exception as e:
 		logger.error(f"Database initialization failed: {e}")
 		raise
+
+	# Create initial admin user if none exist (development convenience)
+	try:
+		from auth import get_password_hash
+		from database import SessionLocal, User
+		db = SessionLocal()
+		user_count = db.query(User).count()
+		if user_count == 0:
+			logger.warning("No users found in database; creating default admin user for development")
+			initial_password = os.getenv('INITIAL_ADMIN_PASSWORD', 'AdminPass123!')
+			password_hash = get_password_hash(initial_password)
+			admin_user = User(
+				username=os.getenv('INITIAL_ADMIN_USERNAME', 'admin'),
+				email=os.getenv('INITIAL_ADMIN_EMAIL', 'admin@example.com'),
+				password_hash=password_hash,
+				is_active=True,
+				is_admin=True
+			)
+			db.add(admin_user)
+			db.commit()
+			logger.warning(f"Created default admin user: {admin_user.username} (password from INITIAL_ADMIN_PASSWORD or default)" )
+		db.close()
+	except Exception as e:
+		logger.error(f"Failed to create initial admin user: {e}")
 	
 	# Initialize script modules
 	global ssh_manager, template_manager, backup_executor, job_scheduler

@@ -92,7 +92,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         # Truncate password to 72 bytes for bcrypt compatibility
         password_bytes = plain_password.encode('utf-8')[:72]
-        return pwd_context.verify(password_bytes, hashed_password)
+        try:
+            # Try passlib verification first
+            return pwd_context.verify(password_bytes, hashed_password)
+        except Exception:
+            # Fallback to bcrypt module if passlib fails to identify hash
+            try:
+                import bcrypt as _bcrypt
+                return _bcrypt.checkpw(password_bytes, hashed_password.encode('utf-8'))
+            except Exception:
+                return False
     except Exception as e:
         print(f"Password verification error: {e}")
         return False
@@ -101,7 +110,13 @@ def get_password_hash(password: str) -> str:
     """Generate password hash."""
     # Truncate password to 72 bytes for bcrypt compatibility
     password_bytes = password.encode('utf-8')[:72]
-    return pwd_context.hash(password_bytes)
+    try:
+        # Prefer passlib's context hashing
+        return pwd_context.hash(password_bytes)
+    except Exception:
+        # Fallback to bcrypt module directly
+        import bcrypt as _bcrypt
+        return _bcrypt.hashpw(password_bytes, _bcrypt.gensalt()).decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create JWT access token."""

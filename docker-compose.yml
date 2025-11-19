@@ -4,8 +4,10 @@ services:
   # Backend API Service
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      # Use repository root as build context so supporting modules (scripts/) are
+      # available to the backend image during build and runtime.
+      context: .
+      dockerfile: api/Dockerfile
     container_name: backup-api
     restart: unless-stopped
     ports:
@@ -19,6 +21,7 @@ services:
       - LOG_LEVEL=INFO
     volumes:
       - ./api:/app
+      - ./scripts:/scripts:ro
       - backup-data:/app/backups
       - api-logs:/app/logs
     depends_on:
