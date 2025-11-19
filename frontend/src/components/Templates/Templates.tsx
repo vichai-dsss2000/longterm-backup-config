@@ -15,7 +15,6 @@ import {
   Modal,
   OverlayTrigger,
   Tooltip,
-  Accordion,
   Nav,
   Tab
 } from 'react-bootstrap';

@@ -93,21 +93,30 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   // Expand all tree nodes
-  const expandAll = () => {
+  const expandAll = React.useCallback(() => {
     const allLocations = new Set<string>();
     const allDeviceTypeKeys = new Set<string>();
-    
-    Object.values(deviceTree).forEach((locationNode) => {
-      allLocations.add(locationNode.location);
-      Object.keys(locationNode.deviceTypes).forEach((deviceType) => {
-        allDeviceTypeKeys.add(`${locationNode.location}-${deviceType}`);
-      });
+
+    devices.filter(d => d.is_active).forEach(device => {
+      const location = device.location || 'Unknown Location';
+      allLocations.add(location);
+
+      let deviceTypeStr = '';
+      if (device.device_type && typeof device.device_type === 'object') {
+        const dt = device.device_type as any;
+        deviceTypeStr = `${dt.vendor} ${dt.model}`;
+        if (dt.firmware_version) deviceTypeStr += ` (${dt.firmware_version})`;
+      } else {
+        deviceTypeStr = (device.device_type as string) || `Type ID: ${device.device_type_id}`;
+      }
+
+      allDeviceTypeKeys.add(`${location}-${deviceTypeStr}`);
     });
-    
+
     setExpandedLocations(allLocations);
     setExpandedDeviceTypes(allDeviceTypeKeys);
     setAllExpanded(true);
-  };
+  }, [devices]);
 
   // Collapse all tree nodes
   const collapseAll = () => {
@@ -286,7 +295,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         expandAll();
       }, 100);
     }
-  }, [devices, allExpanded]);
+  }, [devices, allExpanded, expandAll]);
 
   // Organize devices into tree structure - only show active devices
   const deviceTree = devices
