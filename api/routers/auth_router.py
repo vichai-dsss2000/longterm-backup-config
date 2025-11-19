@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from database import get_db, User, UserProfile, LoginSession
 from schemas import UserLogin, Token, UserCreate, UserResponse, MessageResponse
@@ -22,14 +24,18 @@ from config import settings
 router = APIRouter()
 security = HTTPBearer()
 
+# Initialize limiter for rate limiting
+limiter = Limiter(key_func=get_remote_address)
+
 
 @router.post("/login", response_model=Token)
+@limiter.limit(f"{settings.login_rate_limit_times}/{settings.login_rate_limit_seconds}seconds")
 async def login(
-    user_credentials: UserLogin,
     request: Request,
+    user_credentials: UserLogin,
     db: Session = Depends(get_db)
 ):
-    """Authenticate user and return JWT token."""
+    """Authenticate user and return JWT token with rate limiting."""
     user = authenticate_user(db, user_credentials.username, user_credentials.password)
     if not user:
         raise HTTPException(
