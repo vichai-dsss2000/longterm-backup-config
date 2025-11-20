@@ -20,20 +20,36 @@ from database import (
 from schemas import BackupJobRequest, BackupJobResponse, MessageResponse
 from auth import get_current_user, get_admin_user
 
-# Import script modules
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
-
-from backup_executor import DeviceBackupExecutor, BackupJobConfig, BackupStatus
-from file_storage import storage_manager
-from error_handling import error_manager
-
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Global backup executor instance (will be initialized in main.py)
 backup_executor = None
+
+# Import script modules
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
+
+try:
+    from backup_executor import DeviceBackupExecutor, BackupJobConfig, BackupStatus
+except ImportError as e:
+    logger.warning(f"Failed to import backup_executor: {e}")
+    DeviceBackupExecutor = None
+    BackupJobConfig = None
+    BackupStatus = None
+
+try:
+    from file_storage import storage_manager
+except ImportError as e:
+    logger.warning(f"Failed to import file_storage: {e}")
+    storage_manager = None
+
+try:
+    from error_handling import error_manager
+except ImportError as e:
+    logger.warning(f"Failed to import error_handling: {e}")
+    error_manager = None
 
 
 def get_backup_executor():
@@ -292,13 +308,14 @@ async def execute_backup_job(
                 db.commit()
                 
                 # Log error
-                error_manager.log_error(
-                    category="BACKUP_EXECUTION",
-                    message=f"Manual backup failed for device {device.device_name}",
-                    details={
-                        'job_id': backup_job.id,
-                        'device_id': device.id,
-                        'error': str(e)
+                if error_manager:
+                    error_manager.log_error(
+                        category="BACKUP_EXECUTION",
+                        message=f"Manual backup failed for device {device.device_name}",
+                        details={
+                            'job_id': backup_job.id,
+                            'device_id': device.id,
+                            'error': str(e)
                     }
                 )
         

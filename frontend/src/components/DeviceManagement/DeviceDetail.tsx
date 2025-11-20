@@ -81,7 +81,7 @@ const DeviceDetail: React.FC = () => {
     if (id) {
       loadDeviceData();
     }
-  }, [loadDeviceData]);
+  }, [loadDeviceData, id]);
 
   const handleEdit = () => {
     if (device) {

@@ -23,16 +23,25 @@ from schemas import (
 )
 from auth import get_current_user, get_admin_user
 
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
 # Import script modules
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from job_scheduler import BackupScheduler
-from error_handling import error_manager
+try:
+    from job_scheduler import BackupScheduler
+except ImportError as e:
+    logger.warning(f"Failed to import job_scheduler: {e}")
+    BackupScheduler = None
 
-router = APIRouter()
-logger = logging.getLogger(__name__)
+try:
+    from error_handling import error_manager
+except ImportError as e:
+    logger.warning(f"Failed to import error_handling: {e}")
+    error_manager = None
 
 # Global job scheduler instance (will be initialized in main.py)
 job_scheduler = None
@@ -247,14 +256,15 @@ async def create_schedule_policy(
     except Exception as e:
         logger.error(f"Failed to add schedule policy to scheduler: {e}")
         # Don't fail the creation, but log the error
-        error_manager.log_error(
-            category="SCHEDULER",
-            message=f"Failed to add schedule policy to scheduler",
-            details={
-                'policy_id': new_policy.id,
-                'error': str(e)
-            }
-        )
+        if error_manager:
+            error_manager.log_error(
+                category="SCHEDULER",
+                message=f"Failed to add schedule policy to scheduler",
+                details={
+                    'policy_id': new_policy.id,
+                    'error': str(e)
+                }
+            )
     
     logger.info(f"Created schedule policy: {new_policy.policy_name}")
     
@@ -354,14 +364,15 @@ async def update_schedule_policy(
         logger.info(f"Updated schedule policy in job scheduler: {policy.policy_name}")
     except Exception as e:
         logger.error(f"Failed to update schedule policy in scheduler: {e}")
-        error_manager.log_error(
-            category="SCHEDULER",
-            message=f"Failed to update schedule policy in scheduler",
-            details={
-                'policy_id': policy.id,
-                'error': str(e)
-            }
-        )
+        if error_manager:
+            error_manager.log_error(
+                category="SCHEDULER",
+                message=f"Failed to update schedule policy in scheduler",
+                details={
+                    'policy_id': policy.id,
+                    'error': str(e)
+                }
+            )
     
     logger.info(f"Updated schedule policy: {policy.policy_name}")
     
@@ -400,14 +411,15 @@ async def delete_schedule_policy(
         logger.info(f"Removed schedule policy from job scheduler: {policy.policy_name}")
     except Exception as e:
         logger.error(f"Failed to remove schedule policy from scheduler: {e}")
-        error_manager.log_error(
-            category="SCHEDULER",
-            message=f"Failed to remove schedule policy from scheduler",
-            details={
-                'policy_id': policy_id,
-                'error': str(e)
-            }
-        )
+        if error_manager:
+            error_manager.log_error(
+                category="SCHEDULER",
+                message=f"Failed to remove schedule policy from scheduler",
+                details={
+                    'policy_id': policy_id,
+                    'error': str(e)
+                }
+            )
     
     logger.info(f"Soft deleted schedule policy: {policy.policy_name}")
     

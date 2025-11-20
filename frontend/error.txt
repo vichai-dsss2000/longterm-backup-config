@@ -1,0 +1,205 @@
+
+dispatchXhrRequest @ xhr.js:198
+xhr @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackups @ backupService.ts:62
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:39 Response error: /backups/ Status: 404 Data: {detail: 'Not Found'}
+(anonymous) @ apiClient.ts:39
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackups @ backupService.ts:62
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+BackupJobs.tsx:101 Error loading data: AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+(anonymous) @ BackupJobs.tsx:101
+await in (anonymous)
+(anonymous) @ BackupJobs.tsx:116Understand this error
+backupService.ts:122  GET http://localhost:3000/api/backups/stats 404 (Not Found)
+dispatchXhrRequest @ xhr.js:198
+xhr @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackupStats @ backupService.ts:122
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:39 Response error: /backups/stats Status: 404 Data: {detail: 'Not Found'}
+(anonymous) @ apiClient.ts:39
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackupStats @ backupService.ts:122
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:35 Response received: /devices/ Status: 200
+apiClient.ts:20 Adding token to request: /backups/ Token: eyJhbGciOiJIUzI1NiIs...
+apiClient.ts:20 Adding token to request: /backups/stats Token: eyJhbGciOiJIUzI1NiIs...
+apiClient.ts:20 Adding token to request: /devices/ Token: eyJhbGciOiJIUzI1NiIs...
+backupService.ts:62  GET http://localhost:3000/api/backups/ 404 (Not Found)
+dispatchXhrRequest @ xhr.js:198
+xhr @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackups @ backupService.ts:62
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:39 Response error: /backups/ Status: 404 Data: {detail: 'Not Found'}
+(anonymous) @ apiClient.ts:39
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackups @ backupService.ts:62
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+BackupJobs.tsx:101 Error loading data: AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+(anonymous) @ BackupJobs.tsx:101
+await in (anonymous)
+(anonymous) @ BackupJobs.tsx:116Understand this error
+backupService.ts:122  GET http://localhost:3000/api/backups/stats 404 (Not Found)
+dispatchXhrRequest @ xhr.js:198
+xhr @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackupStats @ backupService.ts:122
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:39 Response error: /backups/stats Status: 404 Data: {detail: 'Not Found'}
+(anonymous) @ apiClient.ts:39
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackupStats @ backupService.ts:122
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:35 Response received: /devices/ Status: 200
+apiClient.ts:20 Adding token to request: /backups/ Token: eyJhbGciOiJIUzI1NiIs...
+apiClient.ts:20 Adding token to request: /backups/stats Token: eyJhbGciOiJIUzI1NiIs...
+apiClient.ts:20 Adding token to request: /devices/ Token: eyJhbGciOiJIUzI1NiIs...
+backupService.ts:62  GET http://localhost:3000/api/backups/ 404 (Not Found)
+dispatchXhrRequest @ xhr.js:198
+xhr @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackups @ backupService.ts:62
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:39 Response error: /backups/ Status: 404 Data: {detail: 'Not Found'}
+(anonymous) @ apiClient.ts:39
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackups @ backupService.ts:62
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+BackupJobs.tsx:101 Error loading data: AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+(anonymous) @ BackupJobs.tsx:101
+await in (anonymous)
+(anonymous) @ BackupJobs.tsx:116Understand this error
+backupService.ts:122  GET http://localhost:3000/api/backups/stats 404 (Not Found)
+dispatchXhrRequest @ xhr.js:198
+xhr @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackupStats @ backupService.ts:122
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:39 Response error: /backups/stats Status: 404 Data: {detail: 'Not Found'}
+(anonymous) @ apiClient.ts:39
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackupStats @ backupService.ts:122
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:35 Response received: /devices/ Status: 200
+apiClient.ts:20 Adding token to request: /backups/ Token: eyJhbGciOiJIUzI1NiIs...
+apiClient.ts:20 Adding token to request: /backups/stats Token: eyJhbGciOiJIUzI1NiIs...
+apiClient.ts:20 Adding token to request: /devices/ Token: eyJhbGciOiJIUzI1NiIs...
+backupService.ts:62  GET http://localhost:3000/api/backups/ 404 (Not Found)
+dispatchXhrRequest @ xhr.js:198
+xhr @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackups @ backupService.ts:62
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:39 Response error: /backups/ Status: 404 Data: {detail: 'Not Found'}
+(anonymous) @ apiClient.ts:39
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackups @ backupService.ts:62
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+BackupJobs.tsx:101 Error loading data: AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+(anonymous) @ BackupJobs.tsx:101
+await in (anonymous)
+(anonymous) @ BackupJobs.tsx:116Understand this error
+backupService.ts:122  GET http://localhost:3000/api/backups/stats 404 (Not Found)
+dispatchXhrRequest @ xhr.js:198
+xhr @ xhr.js:15
+dispatchRequest @ dispatchRequest.js:51
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackupStats @ backupService.ts:122
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:39 Response error: /backups/stats Status: 404 Data: {detail: 'Not Found'}
+(anonymous) @ apiClient.ts:39
+Promise.then
+_request @ Axios.js:163
+request @ Axios.js:40
+__webpack_modules__../node_modules/axios/lib/core/Axios.js._utils_js__WEBPACK_IMPORTED_MODULE_0__.default.forEach.Axios.<computed> @ Axios.js:211
+wrap @ bind.js:12
+getBackupStats @ backupService.ts:122
+(anonymous) @ BackupJobs.tsx:89
+(anonymous) @ BackupJobs.tsx:116Understand this error
+apiClient.ts:35 Response received: /devices/ Status: 200

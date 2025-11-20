@@ -67,7 +67,7 @@ RUN mkdir -p /app/logs /app/backups /app/temp && \
 
 # Activate virtual environment
 ENV PATH="/opt/venv/bin:$PATH"
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/scripts:$PYTHONPATH
 ENV PYTHONUNBUFFERED=1
 
 # Security: Run as non-root user

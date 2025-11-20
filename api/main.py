@@ -36,6 +36,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from config import settings
+import os
 from database import engine, Base, get_db
 from auth import get_current_user, get_admin_user
 
@@ -43,19 +44,62 @@ from auth import get_current_user, get_admin_user
 import sys
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 # Add scripts directory to Python path
 scripts_path = Path(__file__).parent.parent / "scripts"
-sys.path.insert(0, str(scripts_path))
+if str(scripts_path) not in sys.path:
+    sys.path.insert(0, str(scripts_path))
 
-# Import script modules directly (not as packages)
-from ssh_connection import SSHConnectionManager
-from template_processor import BackupCommandTemplateManager
-from backup_executor import DeviceBackupExecutor
-from job_scheduler import BackupScheduler
-from error_handling import error_manager
-from device_discovery import DeviceDiscoveryManager
-from file_storage import storage_manager
-from test_validation import SystemHealthMonitor, test_runner
+# Import script modules directly (not as packages) with fallback
+try:
+    from ssh_connection import SSHConnectionManager
+except ImportError:
+    logger.warning("ssh_connection module not found - SSH features disabled")
+    SSHConnectionManager = None
+
+try:
+    from template_processor import BackupCommandTemplateManager
+except ImportError:
+    logger.warning("template_processor module not found")
+    BackupCommandTemplateManager = None
+
+try:
+    from backup_executor import DeviceBackupExecutor
+except ImportError:
+    logger.warning("backup_executor module not found")
+    DeviceBackupExecutor = None
+
+try:
+    from job_scheduler import BackupScheduler
+except ImportError:
+    logger.warning("job_scheduler module not found")
+    BackupScheduler = None
+
+try:
+    from error_handling import error_manager
+except ImportError:
+    logger.warning("error_handling module not found - using fallback")
+    error_manager = None
+
+try:
+    from device_discovery import DeviceDiscoveryManager
+except ImportError:
+    logger.warning("device_discovery module not found")
+    DeviceDiscoveryManager = None
+
+try:
+    from file_storage import storage_manager
+except ImportError:
+    logger.warning("file_storage module not found")
+    storage_manager = None
+
+try:
+    from test_validation import SystemHealthMonitor, test_runner
+except ImportError:
+    logger.warning("test_validation module not found")
+    SystemHealthMonitor = None
+    test_runner = None
 
 # Configure logging
 logging.basicConfig(
@@ -103,54 +147,66 @@ async def lifespan(app: FastAPI):
 	global device_discovery, health_monitor
 	
 	try:
-		# Initialize SSH connection manager
-		ssh_manager = SSHConnectionManager(
-			max_concurrent_connections=20,
-			use_connection_pool=True
-		)
-		logger.info("SSH connection manager initialized")
-		
-		# Initialize template processor
-		template_manager = BackupCommandTemplateManager()
-		logger.info("Template processor initialized")
-		
-		# Initialize backup executor
-		backup_executor = DeviceBackupExecutor(
-			max_concurrent_jobs=settings.max_concurrent_backups,
-			storage_path="/tmp/network_backups"
-		)
-		logger.info("Backup executor initialized")
-		
-		# Initialize job scheduler
-		job_scheduler = BackupScheduler(
-			database_url=settings.database_url,
-			max_workers=settings.max_concurrent_backups,
-			storage_path="/tmp/backups"
-		)
-		job_scheduler.start_scheduler()
-		logger.info("Job scheduler started")
-		
-		# Initialize device discovery manager
-		device_discovery = DeviceDiscoveryManager()
-		logger.info("Device discovery manager initialized")
-		
-		# Initialize health monitor
-		health_monitor = SystemHealthMonitor()
-		logger.info("System health monitor initialized")
-		
-		# Initialize storage manager with configuration
-		# storage_manager.configure_backend(
-		#     backend_name="sftp_default",
-		#     backend_type="sftp",
-		#     config={
-		#         'host': settings.default_sftp_server,
-		#         'username': settings.default_sftp_username,
-		#         'password': settings.default_sftp_password,
-		#         'port': settings.default_sftp_port,
-		#         'base_path': settings.default_backup_path
-		#     }
-		# )
-		logger.info("Storage manager configured")
+		# Allow skipping heavy script/module initialization in dev/test by setting
+		# the environment variable DEV_SKIP_MANAGERS=1. This avoids SSH attempts
+		# and scheduler work when running tests or the frontend dev server.
+		if os.getenv('DEV_SKIP_MANAGERS'):
+			logger.info("DEV_SKIP_MANAGERS set — skipping initialization of managers (ssh, scheduler, etc.)")
+		else:
+			# Initialize SSH connection manager
+			if SSHConnectionManager:
+				ssh_manager = SSHConnectionManager(
+					max_concurrent_connections=20,
+					use_connection_pool=True
+				)
+				logger.info("SSH connection manager initialized")
+
+			# Initialize template processor
+			if BackupCommandTemplateManager:
+				template_manager = BackupCommandTemplateManager()
+				logger.info("Template processor initialized")
+
+			# Initialize backup executor
+			if DeviceBackupExecutor:
+				backup_executor = DeviceBackupExecutor(
+					max_concurrent_jobs=settings.max_concurrent_backups,
+					storage_path="/tmp/network_backups"
+				)
+				logger.info("Backup executor initialized")
+
+			# Initialize job scheduler
+			if BackupScheduler:
+				job_scheduler = BackupScheduler(
+					database_url=settings.database_url,
+					max_workers=settings.max_concurrent_backups,
+					storage_path="/tmp/backups"
+				)
+				job_scheduler.start_scheduler()
+				logger.info("Job scheduler started")
+
+			# Initialize device discovery manager
+			if DeviceDiscoveryManager:
+				device_discovery = DeviceDiscoveryManager()
+				logger.info("Device discovery manager initialized")
+
+			# Initialize health monitor
+			if SystemHealthMonitor:
+				health_monitor = SystemHealthMonitor()
+				logger.info("System health monitor initialized")
+
+			# Initialize storage manager with configuration
+			# storage_manager.configure_backend(
+			#     backend_name="sftp_default",
+			#     backend_type="sftp",
+			#     config={
+			#         'host': settings.default_sftp_server,
+			#         'username': settings.default_sftp_username,
+			#         'password': settings.default_sftp_password,
+			#         'port': settings.default_sftp_port,
+			#         'base_path': settings.default_backup_path
+			#     }
+			# )
+			logger.info("Storage manager configured")
 		
 		# Load existing scheduled jobs from database
 		# await job_scheduler.load_jobs_from_database()
@@ -556,9 +612,9 @@ try:
 	
 	logger.info("All API routers registered successfully")
 	
-except ImportError as e:
-	logger.warning(f"Some API routers not available yet: {e}")
-	# This is expected during initial setup - routers will be created progressively
+except Exception as e:
+	logger.error(f"CRITICAL: Failed to import API routers: {e}", exc_info=True)
+	raise
 
 
 # WebSocket endpoint for real-time updates (optional)

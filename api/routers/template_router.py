@@ -19,20 +19,31 @@ from schemas import (
 )
 from auth import get_current_user, get_admin_user
 
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# Initialize template manager and validator (conditionally based on imports)
+template_manager = None
+template_validator = None
+
 # Import script modules
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from template_processor import BackupCommandTemplateManager
-from test_validation import TemplateValidator
+try:
+    from template_processor import BackupCommandTemplateManager
+    template_manager = BackupCommandTemplateManager()
+except ImportError as e:
+    logger.warning(f"Failed to import template_processor: {e}")
+    BackupCommandTemplateManager = None
 
-router = APIRouter()
-logger = logging.getLogger(__name__)
-
-# Initialize template manager and validator
-template_manager = BackupCommandTemplateManager()
-template_validator = TemplateValidator()
+try:
+    from test_validation import TemplateValidator
+    template_validator = TemplateValidator()
+except ImportError as e:
+    logger.warning(f"Failed to import test_validation: {e}")
+    TemplateValidator = None
 
 
 @router.get("/", response_model=List[BackupCommandTemplateResponse])
@@ -536,3 +547,17 @@ async def get_templates_by_device_type(
             for template in templates
         ]
     }
+
+
+# Backwards-compatible route used by older frontend code
+@router.get("/by-device-type/{device_type_id}")
+async def get_templates_by_device_type_legacy(
+    device_type_id: int,
+    active_only: bool = True,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Legacy alias route for `/templates/by-device-type/{id}` used by older frontend code.
+    Delegates to the primary `get_templates_by_device_type` implementation.
+    """
+    return await get_templates_by_device_type(device_type_id=device_type_id, active_only=active_only, db=db, current_user=current_user)

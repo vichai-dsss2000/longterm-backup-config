@@ -49,7 +49,17 @@ export class TemplateService {
     device_type_id?: number;
     is_active?: boolean;
   }): Promise<BackupTemplate[]> {
-    const response = await apiClient.get('/templates/', { params });
+    // The backend expects the 'active_only' query parameter name; map the
+    // frontend's `is_active` to `active_only` for compatibility.
+    const queryParams: any = {};
+    if (params) {
+      if (typeof params.skip !== 'undefined') queryParams.skip = params.skip;
+      if (typeof params.limit !== 'undefined') queryParams.limit = params.limit;
+      if (typeof params.device_type_id !== 'undefined') queryParams.device_type_id = params.device_type_id;
+      if (typeof params.is_active !== 'undefined') queryParams.active_only = params.is_active;
+    }
+
+    const response = await apiClient.get('/templates/', { params: queryParams });
     return response.data;
   }
 

@@ -580,6 +580,21 @@ class ErrorHandlingManager:
         """Get structured logger instance."""
         return StructuredLogger(name, self.error_tracker)
 
+    def log_error(self, category: str, message: str, exception: Optional[Exception] = None, details: Optional[Dict[str, Any]] = None):
+        """Convenience method to log an error with category and optional details.
+
+        This method keeps backward compatibility with callers that expect
+        error_manager.log_error(...) and delegates to the structured logger.
+        """
+        kwargs: Dict[str, Any] = {}
+        if details:
+            kwargs.update(details)
+        # Include category in context for classification and tracking
+        kwargs.setdefault("category", category)
+
+        # Use the structured logger to record the error (it will also track it)
+        self.structured_logger.error(message, exception=exception, **kwargs)
+
 
 # Global error handling manager
 error_manager = ErrorHandlingManager()

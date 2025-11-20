@@ -3,6 +3,7 @@ from typing import Optional
 import re
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+import bcrypt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -14,6 +15,8 @@ from database import get_db, User, LoginSession
 from config import settings
 
 # Password hashing
+# Keep a passlib CryptContext for compatibility info, but use direct bcrypt
+# for hashing/verifying to avoid passlib backend detection issues.
 pwd_context = CryptContext(
     schemes=["bcrypt"], 
     deprecated="auto",
@@ -21,8 +24,8 @@ pwd_context = CryptContext(
     bcrypt__ident="2b"
 )
 
-# JWT token security
-security = HTTPBearer()
+# JWT token security - Single HTTPBearer instance for all endpoints
+security = HTTPBearer(scheme_name="Bearer", description="JWT Bearer token")
 
 # Credential Encryption
 class CredentialEncryption:
@@ -90,18 +93,22 @@ class PasswordPolicy:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
     try:
-        # Truncate password to 72 bytes for bcrypt compatibility
-        password_bytes = plain_password.encode('utf-8')[:72]
-        return pwd_context.verify(password_bytes, hashed_password)
+        # Truncate password to 72 bytes for bcrypt compatibility while
+        # preserving valid UTF-8 characters. Use the bcrypt library
+        # directly which expects bytes for checkpw.
+        pw_bytes = plain_password.encode('utf-8')[:72]
+        return bcrypt.checkpw(pw_bytes, hashed_password.encode('utf-8'))
     except Exception as e:
         print(f"Password verification error: {e}")
         return False
 
 def get_password_hash(password: str) -> str:
     """Generate password hash."""
-    # Truncate password to 72 bytes for bcrypt compatibility
-    password_bytes = password.encode('utf-8')[:72]
-    return pwd_context.hash(password_bytes)
+    # Truncate password to 72 bytes for bcrypt compatibility and generate
+    # a bcrypt hash using the bcrypt library directly. Return decoded str.
+    pw_bytes = password.encode('utf-8')[:72]
+    hashed = bcrypt.hashpw(pw_bytes, bcrypt.gensalt(rounds=12))
+    return hashed.decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create JWT access token."""
@@ -145,6 +152,13 @@ def authenticate_user(db: Session, username: str, password: str):
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     """Get current authenticated user from JWT token."""
+    if not credentials or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     token = credentials.credentials
     payload = verify_token(token)
     username = payload.get("sub")

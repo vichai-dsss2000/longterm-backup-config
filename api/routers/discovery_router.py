@@ -17,21 +17,33 @@ from database import get_db, NetworkDevice, DeviceType
 from schemas import NetworkDeviceCreate, MessageResponse
 from auth import get_current_user, get_admin_user
 
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# Initialize discovery manager conditionally
+discovery_manager = None
+
 # Import script modules
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from device_discovery import (
-    DeviceDiscoveryManager, DiscoveredDevice, DiscoveryMethod
-)
-from error_handling import error_manager
+try:
+    from device_discovery import (
+        DeviceDiscoveryManager, DiscoveredDevice, DiscoveryMethod
+    )
+    discovery_manager = DeviceDiscoveryManager()
+except ImportError as e:
+    logger.warning(f"Failed to import device_discovery: {e}")
+    DeviceDiscoveryManager = None
+    DiscoveredDevice = None
+    DiscoveryMethod = None
 
-router = APIRouter()
-logger = logging.getLogger(__name__)
-
-# Initialize discovery manager
-discovery_manager = DeviceDiscoveryManager()
+try:
+    from error_handling import error_manager
+except ImportError as e:
+    logger.warning(f"Failed to import error_handling: {e}")
+    error_manager = None
 
 
 @router.post("/scan/network")
@@ -188,11 +200,12 @@ async def scan_network_range(
                 
             except Exception as e:
                 logger.error(f"Network scan failed: {e}")
-                error_manager.log_error(
-                    category="NETWORK_DISCOVERY",
-                    message=f"Network scan failed for {network_range}",
-                    details={'error': str(e), 'network_range': network_range}
-                )
+                if error_manager:
+                    error_manager.log_error(
+                        category="NETWORK_DISCOVERY",
+                        message=f"Network scan failed for {network_range}",
+                        details={'error': str(e), 'network_range': network_range}
+                    )
                 return {'error': str(e)}
         
         if background_tasks:
@@ -525,6 +538,13 @@ async def get_discovery_history(
         from datetime import timedelta
         
         time_window = timedelta(days=days_back)
+        
+        if not error_manager:
+            return {
+                'discovery_history': [],
+                'message': 'Error manager not available'
+            }
+        
         discovery_errors = error_manager.get_errors_by_category("NETWORK_DISCOVERY", time_window)
         
         return {

@@ -20,28 +20,54 @@ from database import (
 from schemas import MessageResponse
 from auth import get_current_user, get_admin_user
 
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# Initialize testing components (conditionally based on imports)
+health_monitor = None
+connection_tester = None
+template_validator = None
+backup_tester = None
+storage_tester = None
+performance_tester = None
+
 # Import script modules
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
 
-from test_validation import (
-    SystemHealthMonitor, test_runner, ConnectionTester, 
-    TemplateValidator, BackupTester, StorageTester, PerformanceTester
-)
-from error_handling import error_manager
-from file_storage import storage_manager
+try:
+    from test_validation import (
+        SystemHealthMonitor, test_runner, ConnectionTester, 
+        TemplateValidator, BackupTester, StorageTester, PerformanceTester
+    )
+    health_monitor = SystemHealthMonitor()
+    connection_tester = ConnectionTester()
+    template_validator = TemplateValidator()
+    backup_tester = BackupTester()
+    storage_tester = StorageTester()
+    performance_tester = PerformanceTester()
+except ImportError as e:
+    logger.warning(f"Failed to import test_validation: {e}")
+    SystemHealthMonitor = None
+    test_runner = None
+    ConnectionTester = None
+    TemplateValidator = None
+    BackupTester = None
+    StorageTester = None
+    PerformanceTester = None
 
-router = APIRouter()
-logger = logging.getLogger(__name__)
+try:
+    from error_handling import error_manager
+except ImportError as e:
+    logger.warning(f"Failed to import error_handling: {e}")
+    error_manager = None
 
-# Initialize testing components
-health_monitor = SystemHealthMonitor()
-connection_tester = ConnectionTester()
-template_validator = TemplateValidator()
-backup_tester = BackupTester()
-storage_tester = StorageTester()
-performance_tester = PerformanceTester()
+try:
+    from file_storage import storage_manager
+except ImportError as e:
+    logger.warning(f"Failed to import file_storage: {e}")
+    storage_manager = None
 
 
 @router.get("/health/comprehensive")
@@ -484,7 +510,7 @@ async def get_system_statistics(
         ).order_by(desc('backup_date')).all()
         
         # Error statistics
-        error_stats = error_manager.get_error_statistics(timedelta(days=days_back))
+        error_stats = error_manager.get_error_statistics(timedelta(days=days_back)) if error_manager else {}
         
         return {
             "period_days": days_back,
@@ -543,6 +569,12 @@ async def get_recent_errors(
         time_window = timedelta(hours=hours_back)
         
         # Get errors from error manager
+        if not error_manager:
+            return {
+                "recent_errors": [],
+                "message": "Error manager not available"
+            }
+        
         if category:
             errors = error_manager.get_errors_by_category(category, time_window, limit)
         else:

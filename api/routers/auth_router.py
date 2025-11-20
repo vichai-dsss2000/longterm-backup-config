@@ -8,7 +8,6 @@ Integrates with the auth.py module for JWT token handling.
 
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -22,7 +21,6 @@ from auth import (
 from config import settings
 
 router = APIRouter()
-security = HTTPBearer()
 
 # Initialize limiter for rate limiting
 limiter = Limiter(key_func=get_remote_address)
@@ -113,7 +111,8 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         email=current_user.email,
         is_active=current_user.is_active,
         is_admin=current_user.is_admin,
-        created_at=current_user.created_at,
+        # Some legacy DB rows may have NULL created_at; fall back to now to satisfy pydantic
+        created_at=current_user.created_at or datetime.utcnow(),
         profile=profile_data
     )
 

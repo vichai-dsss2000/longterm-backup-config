@@ -1,0 +1,151 @@
+PowerShell 7.5.4
+PS C:\Users\vichais> $login = Invoke-RestMethod -Uri "http://localhost:8000/api/auth/login" -Method POST -ContentType "application/json" -Body '{"username":"admin","password":"admin123"}'
+PS C:\Users\vichais> $token = $login.access_token
+PS C:\Users\vichais> Write-Host "Token: $token"
+Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc2MzY1MDk4OH0.P4eZJoilWCQ5Yx_oEuQyYmJbH9OwPM1SDGI2w3w8-W8
+PS C:\Users\vichais>
+PS C:\Users\vichais>
+PS C:\Users\vichais>
+PS C:\Users\vichais>
+PS C:\Users\vichais>
+PS C:\Users\vichais> $headers = @{"Authorization"="Bearer $token"}
+PS C:\Users\vichais> $devices = Invoke-RestMethod -Uri "http://localhost:8000/api/devices/?skip=0&limit=5" -Headers $headers
+PS C:\Users\vichais> $devices | ConvertTo-Json -Depth 3
+[
+  {
+    "id": 1,
+    "device_name": "BKK-CORE-SW01",
+    "ip_address": "10.10.1.1",
+    "device_type_id": 1,
+    "hostname": "bkk-core-sw01.example.com",
+    "location": "Bangkok Data Center - Rack A1",
+    "management_ip": "10.10.1.1",
+    "ssh_username": "admin",
+    "ssh_port": 22,
+    "description": "Core Switch - Bangkok Primary DC",
+    "is_active": true,
+    "last_backup_date": "2025-11-19T21:11:43.960256",
+    "last_backup_status": "success",
+    "created_at": "2025-11-19T16:11:43.854751",
+    "device_type": {
+      "id": 1,
+      "vendor": "Cisco",
+      "model": "Catalyst 2960",
+      "firmware_version": "IOS 15.x",
+      "device_category": "switch",
+      "netmiko_device_type": "cisco_ios",
+      "description": "Cisco Catalyst 2960 Layer 2/3 Switch",
+      "is_active": true,
+      "created_at": "2025-11-19T16:11:43.790422"
+    }
+  },
+  {
+    "id": 2,
+    "device_name": "BKK-CORE-SW02",
+    "ip_address": "10.10.1.2",
+    "device_type_id": 1,
+    "hostname": "bkk-core-sw02.example.com",
+    "location": "Bangkok Data Center - Rack A2",
+    "management_ip": "10.10.1.2",
+    "ssh_username": "admin",
+    "ssh_port": 22,
+    "description": "Core Switch - Bangkok Secondary DC",
+    "is_active": true,
+    "last_backup_date": "2025-11-19T21:11:43.960256",
+    "last_backup_status": "success",
+    "created_at": "2025-11-19T16:11:43.854751",
+    "device_type": {
+      "id": 1,
+      "vendor": "Cisco",
+      "model": "Catalyst 2960",
+      "firmware_version": "IOS 15.x",
+      "device_category": "switch",
+      "netmiko_device_type": "cisco_ios",
+      "description": "Cisco Catalyst 2960 Layer 2/3 Switch",
+      "is_active": true,
+      "created_at": "2025-11-19T16:11:43.790422"
+    }
+  },
+  {
+    "id": 3,
+    "device_name": "BKK-EDGE-RTR01",
+    "ip_address": "10.10.2.1",
+    "device_type_id": 2,
+    "hostname": "bkk-edge-rtr01.example.com",
+    "location": "Bangkok Data Center - Network Room",
+    "management_ip": "10.10.2.1",
+    "ssh_username": "admin",
+    "ssh_port": 22,
+    "description": "Edge Router - Internet Gateway",
+    "is_active": true,
+    "last_backup_date": null,
+    "last_backup_status": "success",
+    "created_at": "2025-11-19T16:11:43.854751",
+    "device_type": {
+      "id": 2,
+      "vendor": "Cisco",
+      "model": "ASR 1000",
+      "firmware_version": "IOS-XE 16.x",
+      "device_category": "router",
+      "netmiko_device_type": "cisco_xe",
+      "description": "Cisco ASR 1000 Series Router",
+      "is_active": true,
+      "created_at": "2025-11-19T16:11:43.790422"
+    }
+  },
+  {
+    "id": 4,
+    "device_name": "CNX-BRANCH-SW01",
+    "ip_address": "10.20.1.1",
+    "device_type_id": 4,
+    "hostname": "cnx-branch-sw01.example.com",
+    "location": "Chiang Mai Branch Office",
+    "management_ip": "10.20.1.1",
+    "ssh_username": "admin",
+    "ssh_port": 22,
+    "description": "Branch Office Switch - Chiang Mai",
+    "is_active": true,
+    "last_backup_date": null,
+    "last_backup_status": "pending",
+    "created_at": "2025-11-19T16:11:43.854751",
+    "device_type": {
+      "id": 4,
+      "vendor": "Juniper",
+      "model": "EX4200",
+      "firmware_version": "Junos 18.x",
+      "device_category": "switch",
+      "netmiko_device_type": "juniper_junos",
+      "description": "Juniper EX4200 Ethernet Switch",
+      "is_active": true,
+      "created_at": "2025-11-19T16:11:43.790422"
+    }
+  },
+  {
+    "id": 5,
+    "device_name": "HKT-BRANCH-RTR01",
+    "ip_address": "10.30.1.1",
+    "device_type_id": 6,
+    "hostname": "hkt-branch-rtr01.example.com",
+    "location": "Phuket Branch Office",
+    "management_ip": "10.30.1.1",
+    "ssh_username": "admin",
+    "ssh_port": 22,
+    "description": "Branch Router - Phuket Office",
+    "is_active": true,
+    "last_backup_date": null,
+    "last_backup_status": "failed",
+    "created_at": "2025-11-19T16:11:43.854751",
+    "device_type": {
+      "id": 6,
+      "vendor": "MikroTik",
+      "model": "RouterBoard RB4011",
+      "firmware_version": "RouterOS 6.x",
+      "device_category": "router",
+      "netmiko_device_type": "mikrotik_routeros",
+      "description": "MikroTik RouterBoard RB4011",
+      "is_active": true,
+      "created_at": "2025-11-19T16:11:43.790422"
+    }
+  }
+]
+PS C:\Users\vichais>

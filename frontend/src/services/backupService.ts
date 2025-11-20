@@ -59,8 +59,14 @@ export class BackupService {
     start_date?: string;
     end_date?: string;
   }): Promise<BackupJob[]> {
-    const response = await apiClient.get('/backups/', { params });
-    return response.data;
+    try {
+      const response = await apiClient.get('/backups/', { params });
+      return response.data;
+    } catch (err: any) {
+      // Treat 404 as empty list (no backups available)
+      if (err.response?.status === 404) return [];
+      throw err;
+    }
   }
 
   static async getBackup(id: number): Promise<BackupJob> {
@@ -119,7 +125,26 @@ export class BackupService {
     success_rate?: number;
     average_duration_seconds?: number;
   }> {
-    const response = await apiClient.get('/backups/stats');
-    return response.data;
+    try {
+      const response = await apiClient.get('/backups/stats');
+      return response.data;
+    } catch (err: any) {
+      // If stats endpoint not available, return sensible defaults
+      if (err.response?.status === 404) {
+        return {
+          total_backups: 0,
+          total_jobs: 0,
+          successful_backups: 0,
+          failed_backups: 0,
+          running_backups: 0,
+          total_backup_size: 0,
+          total_backup_size_mb: 0,
+          status_breakdown: {},
+          success_rate: 0,
+          average_duration_seconds: 0
+        };
+      }
+      throw err;
+    }
   }
 }

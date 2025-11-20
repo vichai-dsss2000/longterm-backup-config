@@ -10,11 +10,12 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./longterm_backup_config.db"
     
     # JWT Configuration
-    secret_key: str = "your-secret-key-change-this-in-production"
+    secret_key: str = "longterm_backup_config-1234567890abcdef"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 720
     
     # Security - Encryption
+    device_encryption_key: Optional[str] = os.getenv('DEVICE_ENCRYPTION_KEY')
     encryption_key: Optional[str] = None  # Fernet key for credential encryption
     
     # Security - Password Policy
@@ -72,16 +73,16 @@ class Settings(BaseSettings):
         """Validate security settings in production"""
         if self.environment == "production":
             # Validate JWT secret
-            if self.secret_key == "your-secret-key-change-this-in-production":
+            if self.secret_key == "your-secret-key-change-this-in-production" or len(self.secret_key) < 20:
                 raise ValueError(
                     "CRITICAL: Must set SECRET_KEY in production environment. "
                     "Generate with: openssl rand -hex 32"
                 )
             
             # Validate encryption key
-            if not self.encryption_key:
+            if not self.device_encryption_key or "change-this" in (self.device_encryption_key or ""):
                 raise ValueError(
-                    "CRITICAL: Must set ENCRYPTION_KEY in production environment. "
+                    "CRITICAL: Must set DEVICE_ENCRYPTION_KEY in production environment. "
                     "Generate with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
                 )
             

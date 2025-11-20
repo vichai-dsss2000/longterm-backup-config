@@ -15,15 +15,19 @@ from database import (
     BackupCommandTemplate, JobCategory, JobSchedulePolicy,
     DeviceBackupInfo, BackupFileStorage
 )
-from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import json
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+# Use the application's hashing function to ensure compatibility
+try:
+    # api package is added to sys.path above
+    from auth import get_password_hash
+except Exception:
+    # Fallback to bcrypt directly if auth import fails
+    import bcrypt
+    def get_password_hash(password: str) -> str:
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode('utf-8')[:72], salt).decode('utf-8')
 
 def seed_database():
     """Seed all tables with example data"""
@@ -42,44 +46,54 @@ def seed_database():
             User(
                 username="admin",
                 email="admin@example.com",
-                password_hash=hash_password("admin123"),
+                password_hash=get_password_hash("admin123"),
                 is_active=True,
                 is_admin=True
             ),
             User(
                 username="operator1",
                 email="operator1@example.com",
-                password_hash=hash_password("operator123"),
+                password_hash=get_password_hash("operator123"),
                 is_active=True,
                 is_admin=False
             ),
             User(
                 username="operator2",
                 email="operator2@example.com",
-                password_hash=hash_password("operator123"),
+                password_hash=get_password_hash("operator123"),
                 is_active=True,
                 is_admin=False
             ),
             User(
                 username="viewer",
                 email="viewer@example.com",
-                password_hash=hash_password("viewer123"),
+                password_hash=get_password_hash("viewer123"),
                 is_active=True,
                 is_admin=False
             ),
         ]
         
-        # Check if users already exist
-        existing_users = db.query(User).filter(User.username.in_([u.username for u in users])).all()
-        if not existing_users:
-            db.add_all(users)
+        # Ensure users exist (create any missing users)
+        desired_usernames = [u.username for u in users]
+        existing_users = {u.username: u for u in db.query(User).filter(User.username.in_(desired_usernames)).all()}
+        created_count = 0
+        final_users = []
+        for u in users:
+            if u.username in existing_users:
+                final_users.append(existing_users[u.username])
+            else:
+                db.add(u)
+                created_count += 1
+                final_users.append(u)
+
+        if created_count > 0:
             db.commit()
-            print(f"   ✅ Created {len(users)} users")
+            print(f"   ✅ Created {created_count} users")
         else:
-            users = existing_users
             print(f"   ⚠️  Users already exist, using existing data")
-        
-        # Refresh to get IDs
+
+        # Refresh to get IDs for all final users
+        users = final_users
         for user in users:
             db.refresh(user)
         

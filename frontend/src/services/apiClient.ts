@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const BASE_URL = '/api';
+// Allow overriding API base URL from environment (REACT_APP_API_BASE_URL) for dev.
+// CRA will substitute process.env.REACT_APP_API_BASE_URL at build time.
+const BASE_URL = (process.env.REACT_APP_API_BASE_URL as string) || '/api';
 
 // Axios instance with interceptors for error handling
 const apiClient = axios.create({

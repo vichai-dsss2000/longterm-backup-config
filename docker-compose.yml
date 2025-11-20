@@ -11,19 +11,18 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=mysql+pymysql://backupuser:${DB_PASSWORD}@db:3306/backup_system
-      - SECRET_KEY=${JWT_SECRET_KEY}
-      - CORS_ORIGINS=http://localhost:3001,http://frontend
+      - DATABASE_URL=sqlite:///./longterm_backup_config.db
+      - SECRET_KEY=${SECRET_KEY:-change-this-to-a-real-secret-key-32chars}
+      - DEVICE_ENCRYPTION_KEY=${DEVICE_ENCRYPTION_KEY:-change-this-to-a-real-encryption-key}
+      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000,http://localhost:8000
       - MAX_CONCURRENT_BACKUPS=5
       - BACKUP_STORAGE_PATH=/app/backups
       - LOG_LEVEL=INFO
+      - ENVIRONMENT=development
     volumes:
       - ./api:/app
       - backup-data:/app/backups
       - api-logs:/app/logs
-    depends_on:
-      db:
-        condition: service_healthy
     networks:
       - backup-network
     healthcheck:
@@ -38,10 +37,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_BASE_URL=http://api:8000/api
     container_name: backup-frontend
     restart: unless-stopped
     ports:
-      - "3001:80"
+      - "3000:80"
+    environment:
+      - REACT_APP_API_BASE_URL=http://api:8000/api
     depends_on:
       - api
     networks:
@@ -53,36 +56,6 @@ services:
       retries: 3
       start_period: 5s
 
-  # MySQL Database Service
-  db:
-    image: mysql:8.0
-    container_name: backup-db
-    restart: unless-stopped
-    environment:
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=backup_system
-      - MYSQL_USER=backupuser
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-      - MYSQL_CHARACTER_SET_SERVER=utf8mb4
-      - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
-    ports:
-      - "3306:3306"
-    volumes:
-      - db-data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    networks:
-      - backup-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    command: >
-      --default-authentication-plugin=mysql_native_password
-      --max_connections=200
-      --innodb_buffer_pool_size=256M
-
   # Optional: Nginx Reverse Proxy (for production)
   nginx:
     image: nginx:1.25-alpine
@@ -92,8 +65,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
       - nginx-logs:/var/log/nginx
     depends_on:
       - api

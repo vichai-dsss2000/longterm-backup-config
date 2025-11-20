@@ -31,7 +31,7 @@ import {
   FileText,
   Zap
 } from 'lucide-react';
-import { BackupService, BackupJob, BackupHistory } from '../../services/backupService';
+import { BackupService, BackupJob } from '../../services/backupService';
 import { DeviceService } from '../../services/deviceService';
 import Swal from 'sweetalert2';
 
@@ -92,13 +92,23 @@ const BackupJobs: React.FC = () => {
         DeviceService.getDevices()
       ]);
 
-      setJobs(jobsData);
-      setStats(statsData);
-      setDevices(devicesData);
+      // Defensive: APIs may return 404 which BackupService now maps to empty data;
+      // ensure we always set arrays/objects to avoid rendering errors.
+      setJobs(Array.isArray(jobsData) ? jobsData : []);
+      setStats(statsData || {});
+      setDevices(Array.isArray(devicesData) ? devicesData : []);
       setError(null);
     } catch (err: any) {
-      setError('Failed to load backup jobs');
-      console.error('Error loading data:', err);
+      // If the error is a 404 from the backups endpoints, show empty state instead
+      if (err.response?.status === 404) {
+        setJobs([]);
+        setStats({});
+        setDevices([]);
+        setError(null);
+      } else {
+        setError('Failed to load backup jobs');
+        console.error('Error loading data:', err);
+      }
     } finally {
       setLoading(false);
     }

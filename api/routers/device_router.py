@@ -20,14 +20,6 @@ from schemas import (
 )
 from auth import get_current_user, get_admin_user
 from config import settings
-
-# Import script modules
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.parent / "scripts"))
-
-from ssh_connection import SSHConnectionManager, create_device_credentials
-from error_handling import error_manager
 from cryptography.fernet import Fernet
 import base64
 import os
@@ -35,8 +27,28 @@ import os
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# Import script modules
+import sys
+from pathlib import Path
+scripts_path = Path(__file__).parent.parent.parent / "scripts"
+if str(scripts_path) not in sys.path:
+    sys.path.insert(0, str(scripts_path))
+
+try:
+    from ssh_connection import SSHConnectionManager, create_device_credentials
+except ImportError as e:
+    logger.warning(f"Failed to import ssh_connection: {e} - SSH features will be limited")
+    SSHConnectionManager = None
+    create_device_credentials = None
+
+try:
+    from error_handling import error_manager
+except ImportError as e:
+    logger.warning(f"Failed to import error_handling: {e}")
+    error_manager = None
+
 # Initialize SSH manager for connection testing
-ssh_manager = SSHConnectionManager()
+ssh_manager = SSHConnectionManager() if SSHConnectionManager else None
 
 # Encryption key for sensitive data (should be from environment in production)
 def get_encryption_key():
@@ -473,6 +485,12 @@ async def test_device_connection(
             'netmiko_device_type': device.device_type.netmiko_device_type
         }
         
+        if not ssh_manager or not create_device_credentials:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="SSH connection manager not available"
+            )
+        
         credentials = create_device_credentials(device_info)
         
         # Test connection
@@ -498,15 +516,16 @@ async def test_device_connection(
             )
         else:
             # Log error
-            error_manager.log_error(
-                category="CONNECTION_TEST",
-                message=f"Connection test failed for device {device.device_name}",
-                details={
-                    'device_id': device.id,
-                    'ip_address': device.ip_address,
-                    'error': connection_result.error_message
-                }
-            )
+            if error_manager:
+                error_manager.log_error(
+                    category="CONNECTION_TEST",
+                    message=f"Connection test failed for device {device.device_name}",
+                    details={
+                        'device_id': device.id,
+                        'ip_address': device.ip_address,
+                        'error': connection_result.error_message
+                    }
+                )
             
             return TestConnectionResponse(
                 success=False,
@@ -518,14 +537,15 @@ async def test_device_connection(
         logger.error(f"Connection test failed for device {device_id}: {e}")
         
         # Log error
-        error_manager.log_error(
-            category="CONNECTION_TEST",
-            message=f"Connection test exception for device {device.device_name}",
-            details={
-                'device_id': device.id,
-                'error': str(e)
-            }
-        )
+        if error_manager:
+            error_manager.log_error(
+                category="CONNECTION_TEST",
+                message=f"Connection test exception for device {device.device_name}",
+                details={
+                    'device_id': device.id,
+                    'error': str(e)
+                }
+            )
         
         return TestConnectionResponse(
             success=False,
